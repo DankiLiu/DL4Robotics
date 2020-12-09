@@ -40,9 +40,6 @@ classic_framework/utils/sim_path.py
 gym_framework/__init__.py
 gym_framework/mujoco_envs/__init__.py
 gym_framework/mujoco_envs/mujoco_env.py
-gym_framework/mujoco_envs/Danki_Tobias/__init__.py
-gym_framework/mujoco_envs/Danki_Tobias/reach_demo.py
-gym_framework/mujoco_envs/Danki_Tobias/reach_demo_test.py
 gym_framework/mujoco_envs/pick_and_place_env/__init__.py
 gym_framework/mujoco_envs/pick_and_place_env/pick_and_place_env.py
 gym_framework/mujoco_envs/reach_env/__init__.py

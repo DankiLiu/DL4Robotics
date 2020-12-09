@@ -58,26 +58,7 @@ class ReachEnvBase(MujocoEnv):
         return super().step(np.concatenate([action[:-1], [gripper_gain]]))
 
 
-class ReachEnvMocapCtrl(ReachEnvBase):
-    def __init__(self, render=True, max_steps=400, nsubsteps=12, dt=2e-3, random_env=True, workspace_size='medium'):
-        agent = PandaMocapControl(render)
-        super().__init__(agent=agent, max_steps=max_steps, render=render, nsubsteps=nsubsteps, dt=dt,
-                         random_env=random_env, workspace_size=workspace_size)
-
-
 class ReachEnvJointVelCtrl(ReachEnvBase):
-    def __init__(self, render=True, crippled=np.array([1,1,1,1,1,1,1,1])):
+    def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
         agent = PandaJointVelControlCrippled(render, crippled=crippled)
-        super().__init__(agent, render)
-
-
-class ReachEnvJointPosCtrl(ReachEnvBase):
-    def __init__(self, render=True):
-        agent = PandaJointPosControl(render)
-        super().__init__(agent, render)
-
-
-class ReachEnvJointTorqueCtrl(ReachEnvBase):
-    def __init__(self, render=True):
-        agent = PandaTorqueControl(render)
         super().__init__(agent, render)

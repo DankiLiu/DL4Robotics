@@ -18,9 +18,13 @@ class PandaJointControl(PandaBase):
     def apply_action(self, action):
         assert len(action) == self.action_dimension, ("Error, wrong action dimension. Expected: " +
                                                       str(self.action_dimension) + ". Got:" + str(len(action)))
+
+        action = self.bound_action(action).copy()
         gripper_ctrl = action[7]
         joint_action = action[:7]
-        self.sim.data.ctrl[:] = np.concatenate(([gripper_ctrl, gripper_ctrl], joint_action))
+
+        # Set the joint command for the simulation
+        self.sim.data.ctrl[:] = np.concatenate((joint_action, [gripper_ctrl, gripper_ctrl]))
 
         # Apply gravity compensation
         self.sim.data.qfrc_applied[self.joint_indices] = self.sim.data.qfrc_bias[self.joint_indices]
@@ -59,21 +63,15 @@ class PandaJointControl(PandaBase):
                                tcp_velr])
 
 
-class PandaJointVelControlCrippled(PandaJointControl):
-    def __init__(self, render=True, crippled=np.array([1,1,1,1,1,1,1,1])):
-        self.crippled = crippled
+class PandaJointVelControl(PandaJointControl):
+    def __init__(self, render=True):
         super().__init__(render=render)
 
     @property
     def action_space(self):
         # upper and lower bound for each joint velocity
-        #low = [-2.175, -2.1750, -2.1750, -2.1750, -2.6100, -2.6100, -2.9671, -1]
-        #high = [2.175, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.9671, 1]
-        low = [-87, -87, -87, -87, -12, -12, -12, -1]
-        high = [87, 87, 87, 87, 12, 12, 12, 1]
-
-        low=low*self.crippled
-        high=high*self.crippled
+        low = [-2.175, -2.1750, -2.1750, -2.1750, -2.6100, -2.6100, -2.9671, -1]
+        high = [2.175, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.9671, 1]
 
         action_space = gym.spaces.Box(low=np.array(low),
                                       high=np.array(high))

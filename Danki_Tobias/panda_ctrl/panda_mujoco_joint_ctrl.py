@@ -60,20 +60,18 @@ class PandaJointControl(PandaBase):
 
 
 class PandaJointVelControlCrippled(PandaJointControl):
-    def __init__(self, render=True, crippled=np.array([1,1,1,1,1,1,1,1])):
+    def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
         self.crippled = crippled
         super().__init__(render=render)
 
     @property
     def action_space(self):
         # upper and lower bound for each joint velocity
-        #low = [-2.175, -2.1750, -2.1750, -2.1750, -2.6100, -2.6100, -2.9671, -1]
-        #high = [2.175, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.9671, 1]
         low = [-87, -87, -87, -87, -12, -12, -12, -1]
         high = [87, 87, 87, 87, 12, 12, 12, 1]
 
-        low=low*self.crippled
-        high=high*self.crippled
+        low = low * self.crippled
+        high = high * self.crippled
 
         action_space = gym.spaces.Box(low=np.array(low),
                                       high=np.array(high))
@@ -83,5 +81,3 @@ class PandaJointVelControlCrippled(PandaJointControl):
     @property
     def ctrl_name(self):
         return 'velocity'
-
-

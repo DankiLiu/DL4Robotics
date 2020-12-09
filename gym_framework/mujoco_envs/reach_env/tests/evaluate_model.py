@@ -27,8 +27,6 @@ def eval_model(env, model, deterministic=True, gamma=0.999):
 if __name__ == '__main__':
     env = ReachEnvMocapCtrl(render=1, max_steps=EPISODE_LENGTH, nsubsteps=NSUBSTEPS, random_env=False)
     # model = PPO.load(path="models/ppo_pickplace_last.zip")
-    #model = SAC.load(path="models/sac_pickplace.zip")
-    #for _ in range(NUM_EVALS):
-    #    print(eval_model(model=model, env=env, deterministic=True))
-    for _ in range(1000):
-        env.step(env.action_space.sample())
+    model = SAC.load(path="models/sac_pickplace.zip")
+    for _ in range(NUM_EVALS):
+        print(eval_model(model=model, env=env, deterministic=True))
