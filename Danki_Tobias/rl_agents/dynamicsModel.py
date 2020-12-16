@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import numpy as np
+import pandas as pd
 
 tf.keras.backend.set_floatx('float64')
 
@@ -18,7 +19,7 @@ def build_and_compile_model(output_size,
         model.add(layers.Dense(size, activation=activation))
     model.add(layers.Dense(output_size, activation=output_activation))
 
-    model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy', ''])
+    model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
     return model
 
 
@@ -53,35 +54,43 @@ class NNDynamicsModel:
 
         self.model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
 
-    def fit(self, state, action, delta):
+    def fit(self, states, actions, deltas):
         """
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
         """
         ### normalize
-        state = normalize(state, self.normalization['observations'][0], self.normalization['observations'][1])
-        delta = normalize(delta, self.normalization['delta'][0], self.normalization['delta'][1])
-        action = normalize(action, self.normalization['actions'][0], self.normalization['actions'][1])
+        states_normalized = normalize(states, self.normalization['observations'][0],
+                                      self.normalization['observations'][1])
+        deltas_normalized = normalize(deltas, self.normalization['delta'][0], self.normalization['delta'][1])
+        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
 
         # combine state and action to input
-        input = state + action
+        input = states_normalized.join(actions_normalized)
 
         N_EPOCHS = 50
-        self.model.fit(x=input, y=delta, batch_size=self.batch_size, epochs=N_EPOCHS)
-
-        train_count = len(state)
+        self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
         and return the (unnormalized) next states as predicted by using the model """
-        obs = normalize(states, self.normalization['observations'][0], self.normalization['observations'][1])
-        # delta = normalize(delta,normalization['delta'])
-        acs = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
-        done = False
-        start = 0;
-        end = 0
-        test_count = len(states)
-        # print(test_count)
-        prediction = self.sess.run(self.delta_prediction, feed_dict={self.sy_ob: obs, self.sy_ac: acs})
+        ### normalize
+        states_normalized = normalize(states, self.normalization['observations'][0],
+                                      self.normalization['observations'][1])
+        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
 
-        return denormalize(prediction, self.normalization['delta'][0], self.normalization['delta'][1]) + states
+        # combine state and action to input
+        input = states_normalized.join(actions_normalized)
+
+        column_names = ['state_delta_position_0', 'state_delta_position_1', 'state_delta_position_2',
+                        'state_delta_position_3',
+                        'state_delta_position_4', 'state_delta_position_5', 'state_delta_position_6',
+                        'state_delta_velocity_0', 'state_delta_velocity_1', 'state_delta_velocity_2',
+                        'state_delta_velocity_3',
+                        'state_delta_velocity_4', 'state_delta_velocity_5', 'state_delta_velocity_6']
+
+        predictions = pd.DataFrame(self.model.predict(input), columns=column_names)
+        predictions = denormalize(predictions, self.normalization['delta'][0], self.normalization['delta'][1])
+
+        states.columns = column_names
+        return predictions + states

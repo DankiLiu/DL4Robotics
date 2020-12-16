@@ -10,7 +10,7 @@ from dynamicsModel import NNDynamicsModel
 
 
 def load_random_samples():
-    df = pd.read_csv('../data/reach_env/random_samples.csv', index_col=0)
+    df = pd.read_csv('../data/reach_env/random_samples_2020-12-16_21-18.csv', index_col=0)
     states = df[[
         'state_position_0', 'state_position_1', 'state_position_2', 'state_position_3', 'state_position_4',
         'state_position_5', 'state_position_6', 'state_velocity_0', 'state_velocity_1', 'state_velocity_2',
@@ -52,6 +52,7 @@ if __name__ == "__main__":
                                 learning_rate=1e-3)
 
     dyn_model.fit(states, actions, state_deltas)
+    dyn_model.predict(states, actions)
 
     """
     mpc_controller = MPCcontroller(env=env,

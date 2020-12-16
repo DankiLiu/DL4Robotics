@@ -5,11 +5,14 @@ from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointV
 
 folder_path = './data/reach_env/'
 dateTimeObj = dt.datetime.now()
-timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dateTimeObj.day) + '_' + str(dateTimeObj.hour) + '-' + str(dateTimeObj.minute)
+timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dateTimeObj.day) + '_' + str(
+    dateTimeObj.hour) + '-' + str(dateTimeObj.minute)
 
 '''
 Generate #steps_per_rollout samples for every rollout.
 '''
+
+
 def random_rollout(steps_per_rollout):
     # Init environment
     env = ReachEnvJointVelCtrl(render=True, nsubsteps=10)
@@ -24,7 +27,7 @@ def random_rollout(steps_per_rollout):
     """
     for step in range(steps_per_rollout):
         old_state_position = env.agent.state[:7]  # 7 joint positions
-        old_state_velocity = env.agent.state[7:14]    # 7 joint velocities
+        old_state_velocity = env.agent.state[7:14]  # 7 joint velocities
         action = env.action_space.sample()
         obs, reward, done, _ = env.step(action)
         new_state_positions = env.agent.state[:7]  # 7 new joint positions
@@ -57,14 +60,15 @@ def samples_array_to_df(state_positions, state_velocities, state_delta_positions
 
     dict = {}
     for i in range(7):
-        dict["state_position_"+ str(i)] = state_positions[:, i]
-        dict["state_velocities_" + str(i)] = state_velocities[:, i]
-        dict["actions_" + str(i)] = actions[:, i]
-        dict["state_delta_positions_" + str(i)] = state_delta_positions[:, i]
-        dict["state_delta_velocities_" + str(i)] = state_delta_velocities[:, i]
+        dict["state_position_" + str(i)] = state_positions[:, i]
+        dict["state_velocity_" + str(i)] = state_velocities[:, i]
+        dict["action_" + str(i)] = actions[:, i]
+        dict["state_delta_position_" + str(i)] = state_delta_positions[:, i]
+        dict["state_delta_velocity_" + str(i)] = state_delta_velocities[:, i]
 
     df = pd.DataFrame(dict)
     return df
+
 
 def collect_random_samples(number_rollouts, steps_per_rollout):
     all_rollouts: pd.DataFrame = pd.DataFrame()
@@ -79,4 +83,4 @@ def collect_random_samples(number_rollouts, steps_per_rollout):
     all_rollouts.to_csv(folder_path + 'random_samples_' + str(timestamp) + '.csv')
 
 
-collect_random_samples(2, 50)
+collect_random_samples(3000, 50)
