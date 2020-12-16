@@ -60,5 +60,6 @@ class ReachEnvBase(MujocoEnv):
 
 class ReachEnvJointVelCtrl(ReachEnvBase):
     def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]), nsubsteps=1):
+        crippled = np.array(crippled)
         agent = PandaJointVelControlCrippled(render, crippled=crippled)
         super().__init__(agent, render, nsubsteps=nsubsteps)
