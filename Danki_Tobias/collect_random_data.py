@@ -6,12 +6,14 @@ from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointV
 
 folder_path = './data/reach_env/'
 dateTimeObj = dt.datetime.now()
+
 timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dateTimeObj.day) + '_' + \
             str(dateTimeObj.hour) + '-' + str(dateTimeObj.minute)
 '''
 Generate #steps_per_rollout samples for every rollout.
 '''
-def random_rollout(rollout_num, steps_per_rollout, is_val):
+
+def random_rollout(steps_per_rollout):
     # Init environment
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10)
 
@@ -25,7 +27,7 @@ def random_rollout(rollout_num, steps_per_rollout, is_val):
     """
     for step in range(steps_per_rollout):
         old_state_position = env.agent.state[:7]  # 7 joint positions
-        old_state_velocity = env.agent.state[7:14]    # 7 joint velocities
+        old_state_velocity = env.agent.state[7:14]  # 7 joint velocities
         action = env.action_space.sample()
         obs, reward, done, _ = env.step(action)
         new_state_positions = env.agent.state[:7]  # 7 new joint positions
@@ -73,8 +75,8 @@ Todo: store data correctly
 look at the step in the paper
 """
 
+
 def collect_random_samples(number_rollouts, steps_per_rollout, is_val=False):
-    # is_val: if it is a validation set
     all_rollouts: pd.DataFrame = pd.DataFrame()
     print("Start collecting samples ... ")
     for rollout in range(number_rollouts):
@@ -111,3 +113,4 @@ steps_per_rollout_val = 10
 
 collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
 #collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
+

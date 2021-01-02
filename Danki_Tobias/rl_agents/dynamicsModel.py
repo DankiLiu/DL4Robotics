@@ -1,22 +1,26 @@
 import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 import numpy as np
+import pandas as pd
+
+tf.keras.backend.set_floatx('float64')
 
 
 # Predefined function to build a feedforward neural network
-def build_feed_forward_model(input_placeholder,
-              output_size,
-              scope,
-              n_layers=2,
-              size=500,
-              activation=tf.tanh,
-              output_activation=None
-              ):
-    out = input_placeholder
-    with tf.variable_scope(scope):
-        for _ in range(n_layers):
-            out = tf.layers.dense(out, size, activation=activation)
-        out = tf.layers.dense(out, output_size, activation=output_activation)
-    return out
+def build_and_compile_model(output_size,
+                            n_layers=2,
+                            size=500,
+                            activation=tf.tanh,
+                            output_activation=None
+                            ):
+    model = keras.Sequential()
+    for _ in range(n_layers):
+        model.add(layers.Dense(size, activation=activation))
+    model.add(layers.Dense(output_size, activation=output_activation))
+
+    model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
+    return model
 
 
 def normalize(data, mean, std):
@@ -27,7 +31,7 @@ def denormalize(data, mean, std):
     return data * (std + 1e-10) + mean
 
 
-class NNDynamicsModel():
+class NNDynamicsModel:
     def __init__(self,
                  env,
                  n_layers,
@@ -38,69 +42,55 @@ class NNDynamicsModel():
                  batch_size,
                  iterations,
                  learning_rate,
-                 sess
                  ):
-
-        """ Note: Be careful about normalization """
-        # https://stackoverflow.com/questions/37770911/tensorflow-creating-a-graph-in-a-class-and-running-it-ouside
         self.normalization = normalization
         self.iterations = iterations
         self.batch_size = batch_size
-        self.sess = sess
-        ob_dim = env.observation_space.shape[0]  # local variables of init just for convinience
-        ac_dim = env.action_space.shape[0]
-        self.sy_ob = tf.placeholder(shape=[None, ob_dim], name="ob", dtype=tf.float32)
-        self.sy_ac = tf.placeholder(shape=[None, ac_dim], name="ac", dtype=tf.float32)
-        self.delta = tf.placeholder(shape=[None, ob_dim], name="del", dtype=tf.float32)
-        ob_ac = tf.concat([self.sy_ob, self.sy_ac], axis=1)
-        self.delta_prediction = build_feed_forward_model(ob_ac, ob_dim, 'trans_dyna',
-                                          n_layers, size, activation, output_activation)
-        loss = tf.losses.mean_squared_error(labels=self.delta, predictions=self.delta_prediction)
-        self.dyna_update_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+        # ob_dim = env.observation_dim.shape[0]  # local variables of init just for convinience
+        # ac_dim = env.action_space.shape[0]
 
-    def fit(self, data):
+        ob_dim = 14
+        ac_dim = 7
+
+        self.model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
+
+    def fit(self, states, actions, deltas):
         """
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
         """
-        # paths=data
-        obs = data['observations']
-        delta = data["delta"]
-        acs = data["actions"]
-
         ### normalize
-        obs = normalize(obs, self.normalization['observations'][0], self.normalization['observations'][1])
-        delta = normalize(delta, self.normalization['delta'][0], self.normalization['delta'][1])
-        acs = normalize(acs, self.normalization['actions'][0], self.normalization['actions'][1])
+        states_normalized = normalize(states, self.normalization['observations'][0],
+                                      self.normalization['observations'][1])
+        deltas_normalized = normalize(deltas, self.normalization['delta'][0], self.normalization['delta'][1])
+        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
 
-        train_count = len(obs)
+        # combine state and action to input
+        input = states_normalized.join(actions_normalized)
+
         N_EPOCHS = 50
-        for i in range(1, N_EPOCHS + 1):  # tf.data /tf.train.batch /tf.train.shuffle_batch -- later
-            print("epoch: ", i)
-            done = False
-            start = 0
-            end = 0
-            while (not done):
-                start = end
-                end = min(start + self.batch_size, train_count)
-                # print(start+self.batch_size,train_count)
-                # print(end)
-                if (end == train_count):
-                    done = True
-                self.sess.run(self.dyna_update_op, feed_dict={self.sy_ob: obs[start:end], self.sy_ac: acs[start:end],
-                                                              self.delta: delta[start:end]})
+        self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
         and return the (unnormalized) next states as predicted by using the model """
-        obs = normalize(states, self.normalization['observations'][0], self.normalization['observations'][1])
-        # delta = normalize(delta,normalization['delta'])
-        acs = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
-        done = False
-        start = 0;
-        end = 0
-        test_count = len(states)
-        # print(test_count)
-        prediction = self.sess.run(self.delta_prediction, feed_dict={self.sy_ob: obs, self.sy_ac: acs})
+        ### normalize
+        states_normalized = normalize(states, self.normalization['observations'][0],
+                                      self.normalization['observations'][1])
+        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
 
-        return denormalize(prediction, self.normalization['delta'][0], self.normalization['delta'][1]) + states
+        # combine state and action to input
+        input = states_normalized.join(actions_normalized)
+
+        column_names = ['state_delta_position_0', 'state_delta_position_1', 'state_delta_position_2',
+                        'state_delta_position_3',
+                        'state_delta_position_4', 'state_delta_position_5', 'state_delta_position_6',
+                        'state_delta_velocity_0', 'state_delta_velocity_1', 'state_delta_velocity_2',
+                        'state_delta_velocity_3',
+                        'state_delta_velocity_4', 'state_delta_velocity_5', 'state_delta_velocity_6']
+
+        predictions = pd.DataFrame(self.model.predict(input), columns=column_names)
+        predictions = denormalize(predictions, self.normalization['delta'][0], self.normalization['delta'][1])
+
+        states.columns = column_names
+        return predictions + states
