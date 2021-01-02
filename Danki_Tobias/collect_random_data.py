@@ -1,18 +1,19 @@
 import datetime as dt
 import numpy as np
 import pandas as pd
+import os
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 
 folder_path = './data/reach_env/'
 dateTimeObj = dt.datetime.now()
-timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dateTimeObj.day) + '_' + str(dateTimeObj.hour) + '-' + str(dateTimeObj.minute)
-
+timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dateTimeObj.day) + '_' + \
+            str(dateTimeObj.hour) + '-' + str(dateTimeObj.minute)
 '''
 Generate #steps_per_rollout samples for every rollout.
 '''
-def random_rollout(steps_per_rollout):
+def random_rollout(rollout_num, steps_per_rollout, is_val):
     # Init environment
-    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10)
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10)
 
     state_positions = []
     state_velocities = []
@@ -39,11 +40,11 @@ def random_rollout(steps_per_rollout):
         state_delta_positions.append(state_delta_position)
         state_delta_velocities.append(state_delta_velocity)
 
-    df = samples_array_to_df(state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions)
+    df = samples_array_to_df(rollout_num, state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions, is_val=is_val)
     return df
 
 
-def samples_array_to_df(state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions):
+def samples_array_to_df(rollout_num, state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions, is_val):
     # 7, 7
     state_positions = np.array(state_positions)
     state_velocities = np.array(state_velocities)
@@ -57,6 +58,7 @@ def samples_array_to_df(state_positions, state_velocities, state_delta_positions
 
     dict = {}
     for i in range(7):
+        dict["rollout_num"] = rollout_num * 7
         dict["state_position_"+ str(i)] = state_positions[:, i]
         dict["state_velocities_" + str(i)] = state_velocities[:, i]
         dict["actions_" + str(i)] = actions[:, i]
@@ -64,19 +66,48 @@ def samples_array_to_df(state_positions, state_velocities, state_delta_positions
         dict["state_delta_velocities_" + str(i)] = state_delta_velocities[:, i]
 
     df = pd.DataFrame(dict)
+    print(df.head)
     return df
+"""
+Todo: store data correctly
+look at the step in the paper
+"""
 
-def collect_random_samples(number_rollouts, steps_per_rollout):
+def collect_random_samples(number_rollouts, steps_per_rollout, is_val=False):
+    # is_val: if it is a validation set
     all_rollouts: pd.DataFrame = pd.DataFrame()
+    print("Start collecting samples ... ")
     for rollout in range(number_rollouts):
-        df = random_rollout(steps_per_rollout)
-        df["rollout"] = [rollout] * steps_per_rollout
-        all_rollouts = all_rollouts.append(df)
+        print("-----rollout no.", rollout, "-------")
+        df = random_rollout(rollout, steps_per_rollout, is_val=is_val)
+        store_in_file(df, is_val=is_val)
 
-    all_rollouts = all_rollouts.reset_index(drop=True)
-    print(all_rollouts.head())
+def store_in_file(rollout_df: pd.DataFrame, is_val):
+    print("Storing data ... ")
 
-    all_rollouts.to_csv(folder_path + 'random_samples_' + str(timestamp) + '.csv')
+    def store(file_name, rollout_df=rollout_df):
+        if os.path.isfile(file_name):
+            df_old = pd.read_csv(file_name)
+            df = pd.concat([df_old, rollout_df])
+            df.reset_index(drop=True, inplace=True)
+            print("append new data to file")
+            df.to_csv(file_name, index=False)
+        else:
+            rollout_df.to_csv(file_name, index=False)
+    if is_val:
+        file_name = folder_path + 'random_samples_val_' + str(timestamp) + '.csv'
+        print("in data path ", file_name)
+        store(file_name, rollout_df)
+    else:
+        file_name = folder_path + 'random_samples_' + str(timestamp) + '.csv'
+        print("in data path ", file_name)
+        store(file_name, rollout_df)
 
+num_rollouts_train = 7
+num_rollouts_val = 7
 
-collect_random_samples(2, 50)
+steps_per_rollout_train = 10
+steps_per_rollout_val = 10
+
+collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
+#collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
