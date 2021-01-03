@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from dynamicsModel import NNDynamicsModel
+from controller import MPCcontroller
 
 
 # from controller import MPCcontroller
@@ -31,6 +32,54 @@ def compute_normalization_variables(data):
     return [mean, std]
 
 
+def sample(env,
+           controller,
+           num_paths=10,
+           horizon=1000,
+           render=False,
+           verbose=False):
+    """
+        Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
+        and returns rollouts by running on the env.
+        Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
+    """
+    paths = []
+    rewards = []
+    costs = []
+    print("num_sum_path", num_paths)
+    for i in range(num_paths):
+        print("path :", i)
+        states = list()
+        actions = list()
+        next_states = list()
+        states.append(env.reset()[0:14])
+        # print(np.array(states).shape)
+        total_reward = 0
+        total_cost = 0
+        for j in range(horizon):
+            if (j % 100 == 0):
+                print(j)
+            act, c = controller.get_action(states[j])
+            actions.append(act)
+            obs, r, done, _ = env.step(actions[j])
+            next_states.append(obs)
+            if j != horizon - 1:
+                states.append(next_states[j])
+            total_reward += r
+            total_cost += c
+        # print(np.array(next_states).shape)
+        # print(np.array(states).shape)
+        path = {'observations': np.array(states),
+                'actions': np.array(actions),
+                'next_observations': np.array(next_states)
+                }
+        paths.append(path)
+        rewards.append(total_reward)
+        costs.append(total_cost)
+
+    return paths, rewards, costs
+
+
 if __name__ == "__main__":
     env = ReachEnvJointVelCtrl(render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
@@ -51,8 +100,36 @@ if __name__ == "__main__":
                                 iterations=150,
                                 learning_rate=1e-3)
 
-    dyn_model.fit(states, actions, state_deltas)
-    dyn_model.predict(states, actions)
+
+    # init the mpc controller
+    mpc_controller = MPCcontroller(env=env,
+                                   dyn_model=dyn_model,)
+
+    # fit with initial training data (random sampled)
+    # dyn_model.fit(states, actions, state_deltas)
+
+
+    # sample new training examples
+    # retrain the model
+    while True:
+       #  states, actions, state_deltas = load_random_samples()
+
+        # Generate trajectories from MPC controllers
+
+        paths, rewards, costs = sample(env, mpc_controller)
+        observations = np.concatenate([path["observations"] for path in paths])
+        actions = np.concatenate([path["actions"] for path in paths])
+        next_observations = np.concatenate([path["next_observations"] for path in paths])
+        observation_delta = next_observations - observations
+
+        """
+        data = {'observations': np.concatenate((data['observations'],
+                                                obs)), 'actions': np.concatenate((data['actions'],
+                                                                                  acs)),
+                'delta': np.concatenate((data['delta'],
+                                         delta))}"""
+
+        dyn_model.predict(states, actions, state_deltas)
 
     """
     mpc_controller = MPCcontroller(env=env,

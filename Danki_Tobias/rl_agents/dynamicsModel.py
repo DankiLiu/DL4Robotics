@@ -7,7 +7,7 @@ import pandas as pd
 tf.keras.backend.set_floatx('float64')
 
 
-# Predefined function to build a feedforward neural network
+# function to build a feedforward neural network
 def build_and_compile_model(output_size,
                             n_layers=2,
                             size=500,
@@ -75,12 +75,13 @@ class NNDynamicsModel:
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
         and return the (unnormalized) next states as predicted by using the model """
         ### normalize
-        states_normalized = normalize(states, self.normalization['observations'][0],
-                                      self.normalization['observations'][1])
-        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
+        states_normalized = np.array([normalize(state, self.normalization['observations'][0],
+                                                self.normalization['observations'][1]) for state in states])
+        actions_normalized = np.array([normalize(action, self.normalization['actions'][0],
+                                                 self.normalization['actions'][1]) for action in actions])
 
         # combine state and action to input
-        input = states_normalized.join(actions_normalized)
+        input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
         column_names = ['state_delta_position_0', 'state_delta_position_1', 'state_delta_position_2',
                         'state_delta_position_3',
@@ -92,5 +93,5 @@ class NNDynamicsModel:
         predictions = pd.DataFrame(self.model.predict(input), columns=column_names)
         predictions = denormalize(predictions, self.normalization['delta'][0], self.normalization['delta'][1])
 
-        states.columns = column_names
+        # states.columns = column_names,        TODO if states is a pd Dataframe line makes sense, if it's a numpy array it doesn't
         return predictions + states
