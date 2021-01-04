@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+
+from Danki_Tobias.column_names import *
 # from cost_functions import trajectory_cost_fn
 import time
 
@@ -41,48 +44,34 @@ class MPCcontroller(Controller):
         self.box_position = self.env.environment_observations[0:3]
 
     def cost(self, next_state):
-        print(next_state)
-        position_state = next_state[:7]
-        print(position_state)
-        # set the state of the simulation to the state predicted by the model
-        simulation_state = self.env.sim.get_state()
-        simulation_state.qpos[:position_state.shape[0]] = position_state
-        self.env.sim.set_state(simulation_state)
-        self.env.sim.forward()
-
-        # get the reward for this state
-        reward = self.env._reward()
-        return -reward
+        position_state = next_state[:, :7]
+        costs = np.zeros(self.num_simulated_paths)
+        # set the state of the simulation to the states predicted by the model
+        for index, position in enumerate(position_state):
+            simulation_state = self.env.sim.get_state()
+            simulation_state.qpos[:position.shape[0]] = position
+            self.env.sim.set_state(simulation_state)
+            self.env.sim.forward()
+            # get the reward for this state
+            costs[index] = -self.env._reward
+        return costs
 
     def get_action(self, state):
-        """ Note: be careful to batch your simulations through the model for speed """
-        print(state)
-        print(state.shape)
         sampled_actions = np.array(
             [[self.env.action_space.sample()[:7] for j in range(self.num_simulated_paths)] for i in
              range(self.horizon)])
-        print(f'actions shape: {sampled_actions.shape}')
         states = [np.array([state] * self.num_simulated_paths)]
-        print(f'State shape: {states[0].shape}')
         next_states = []
         for i in range(self.horizon):
-            print("STATE")
-            print(states[-1].shape)
-            print('ACTION')
-            print(sampled_actions[i, :].shape)
-            test = self.dyn_model.predict(states[-1], sampled_actions[i, :])
-            print(test)
+            states_df = pd.DataFrame(states[-1], columns=state_columns)
+            actions_df = pd.DataFrame(sampled_actions[i, :], columns=action_columns)
+            next_states.append(self.dyn_model.predict(states_df, actions_df).values)
 
-            next_states.append(test)
+            if i < self.horizon:
+                states.append(next_states[-1])
 
-            print(states[-1].shape)
-            print(sampled_actions[i, :].shape)
-
-            next_states.append(self.dyn_model.predict(states[-1], sampled_actions[i, :]))
-            if i < self.horizon: states.append(next_states[-1])
-            
-        trajectory_cost = 0
+        trajectory_costs = np.zeros(self.num_simulated_paths)
         for i in range(len(sampled_actions)):
-            trajectory_cost += self.cost(next_states[i])
+            trajectory_costs += self.cost(next_states[i])
 
-        return sampled_actions[0][np.argmin(trajectory_cost)], min(trajectory_cost)
+        return sampled_actions[0][np.argmin(trajectory_costs)], min(trajectory_costs)

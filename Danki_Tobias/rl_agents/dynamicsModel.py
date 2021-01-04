@@ -4,6 +4,8 @@ from tensorflow.keras import layers
 import numpy as np
 import pandas as pd
 
+from Danki_Tobias.column_names import *
+
 tf.keras.backend.set_floatx('float64')
 
 
@@ -75,23 +77,17 @@ class NNDynamicsModel:
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
         and return the (unnormalized) next states as predicted by using the model """
         ### normalize
-        states_normalized = np.array([normalize(state, self.normalization['observations'][0],
-                                                self.normalization['observations'][1]) for state in states])
-        actions_normalized = np.array([normalize(action, self.normalization['actions'][0],
-                                                 self.normalization['actions'][1]) for action in actions])
+        states_normalized = normalize(states, self.normalization['observations'][0],
+                                      self.normalization['observations'][1])
+        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
 
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        column_names = ['state_delta_position_0', 'state_delta_position_1', 'state_delta_position_2',
-                        'state_delta_position_3',
-                        'state_delta_position_4', 'state_delta_position_5', 'state_delta_position_6',
-                        'state_delta_velocity_0', 'state_delta_velocity_1', 'state_delta_velocity_2',
-                        'state_delta_velocity_3',
-                        'state_delta_velocity_4', 'state_delta_velocity_5', 'state_delta_velocity_6']
-
-        predictions = pd.DataFrame(self.model.predict(input), columns=column_names)
+        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
         predictions = denormalize(predictions, self.normalization['delta'][0], self.normalization['delta'][1])
 
-        # states.columns = column_names,        TODO if states is a pd Dataframe line makes sense, if it's a numpy array it doesn't
+        states.columns = delta_columns
+        states.reset_index(drop=True, inplace=True)
+
         return predictions + states
