@@ -42,11 +42,10 @@ def random_rollout(steps_per_rollout):
         state_delta_positions.append(state_delta_position)
         state_delta_velocities.append(state_delta_velocity)
 
-    df = samples_array_to_df(rollout_num, state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions, is_val=is_val)
-    return df
+    return state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions
 
 
-def samples_array_to_df(rollout_num, state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions, is_val):
+def samples_array_to_df(rollout_num, state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions):
     # 7, 7
     state_positions = np.array(state_positions)
     state_velocities = np.array(state_velocities)
@@ -61,12 +60,11 @@ def samples_array_to_df(rollout_num, state_positions, state_velocities, state_de
     dict = {}
     for i in range(7):
         dict["rollout_num"] = rollout_num * 7
-        dict["state_position_"+ str(i)] = state_positions[:, i]
+        dict["state_positions_" + str(i)] = state_positions[:, i]
         dict["state_velocities_" + str(i)] = state_velocities[:, i]
         dict["actions_" + str(i)] = actions[:, i]
         dict["state_delta_positions_" + str(i)] = state_delta_positions[:, i]
         dict["state_delta_velocities_" + str(i)] = state_delta_velocities[:, i]
-
     df = pd.DataFrame(dict)
     print(df.head)
     return df
@@ -81,19 +79,15 @@ def collect_random_samples(number_rollouts, steps_per_rollout, is_val=False):
     print("Start collecting samples ... ")
     for rollout in range(number_rollouts):
         print("-----rollout no.", rollout, "-------")
-        df = random_rollout(rollout, steps_per_rollout, is_val=is_val)
+        state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions = random_rollout(steps_per_rollout)
+        df = samples_array_to_df(rollout, state_positions, state_velocities, state_delta_positions, state_delta_velocities, actions)
         store_in_file(df, is_val=is_val)
 
 def store_in_file(rollout_df: pd.DataFrame, is_val):
     print("Storing data ... ")
-
     def store(file_name, rollout_df=rollout_df):
         if os.path.isfile(file_name):
-            df_old = pd.read_csv(file_name)
-            df = pd.concat([df_old, rollout_df])
-            df.reset_index(drop=True, inplace=True)
-            print("append new data to file")
-            df.to_csv(file_name, index=False)
+            rollout_df.to_csv(file_name, mode='a', header=False, index=False)
         else:
             rollout_df.to_csv(file_name, index=False)
     if is_val:
@@ -105,12 +99,12 @@ def store_in_file(rollout_df: pd.DataFrame, is_val):
         print("in data path ", file_name)
         store(file_name, rollout_df)
 
-num_rollouts_train = 7
-num_rollouts_val = 7
+num_rollouts_train = 700
+num_rollouts_val = 20
 
-steps_per_rollout_train = 10
-steps_per_rollout_val = 10
+steps_per_rollout_train = 1000
+steps_per_rollout_val = 200
 
-collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
-#collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
+# collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
+collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
 
