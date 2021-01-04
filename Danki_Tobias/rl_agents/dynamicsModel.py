@@ -4,10 +4,12 @@ from tensorflow.keras import layers
 import numpy as np
 import pandas as pd
 
+from Danki_Tobias.column_names import *
+
 tf.keras.backend.set_floatx('float64')
 
 
-# Predefined function to build a feedforward neural network
+# function to build a feedforward neural network
 def build_and_compile_model(output_size,
                             n_layers=2,
                             size=500,
@@ -80,17 +82,12 @@ class NNDynamicsModel:
         actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
 
         # combine state and action to input
-        input = states_normalized.join(actions_normalized)
+        input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        column_names = ['state_delta_position_0', 'state_delta_position_1', 'state_delta_position_2',
-                        'state_delta_position_3',
-                        'state_delta_position_4', 'state_delta_position_5', 'state_delta_position_6',
-                        'state_delta_velocity_0', 'state_delta_velocity_1', 'state_delta_velocity_2',
-                        'state_delta_velocity_3',
-                        'state_delta_velocity_4', 'state_delta_velocity_5', 'state_delta_velocity_6']
-
-        predictions = pd.DataFrame(self.model.predict(input), columns=column_names)
+        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
         predictions = denormalize(predictions, self.normalization['delta'][0], self.normalization['delta'][1])
 
-        states.columns = column_names
+        states.columns = delta_columns
+        states.reset_index(drop=True, inplace=True)
+
         return predictions + states

@@ -1,5 +1,8 @@
 import numpy as np
-from cost_functions import trajectory_cost_fn
+import pandas as pd
+
+from Danki_Tobias.column_names import *
+# from cost_functions import trajectory_cost_fn
 import time
 
 
@@ -38,45 +41,37 @@ class MPCcontroller(Controller):
         self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
 
+        self.box_position = self.env.environment_observations[0:3]
+
+    def cost(self, next_state):
+        position_state = next_state[:, :7]
+        costs = np.zeros(self.num_simulated_paths)
+        # set the state of the simulation to the states predicted by the model
+        for index, position in enumerate(position_state):
+            simulation_state = self.env.sim.get_state()
+            simulation_state.qpos[:position.shape[0]] = position
+            self.env.sim.set_state(simulation_state)
+            self.env.sim.forward()
+            # get the reward for this state
+            costs[index] = -self.env._reward
+        return costs
+
     def get_action(self, state):
-        """ Note: be careful to batch your simulations through the model for speed """
-        # sampled_acts = np.array([[self.env.action_space.sample() for j in range(self.num_simulated_paths)] for i in range(self.horizon)])
-        sampled_acts = np.array(
-            [[self.env.action_space.sample() for j in range(self.num_simulated_paths)] for i in range(self.horizon)])
-        # sampled_acts=np.random.randint(,size=[self.horizon,self.num_simulated_paths])
+        sampled_actions = np.array(
+            [[self.env.action_space.sample()[:7] for j in range(self.num_simulated_paths)] for i in
+             range(self.horizon)])
         states = [np.array([state] * self.num_simulated_paths)]
-        nstates = []
+        next_states = []
         for i in range(self.horizon):
-            nstates.append(self.dyn_model.predict(states[-1], sampled_acts[i, :]))
-            if i < self.horizon: states.append(nstates[-1])
-        costs = trajectory_cost_fn(self.cost_fn, states, sampled_acts, nstates)
-        return sampled_acts[0][np.argmin(costs)], min(costs)
+            states_df = pd.DataFrame(states[-1], columns=state_columns)
+            actions_df = pd.DataFrame(sampled_actions[i, :], columns=action_columns)
+            next_states.append(self.dyn_model.predict(states_df, actions_df).values)
 
+            if i < self.horizon:
+                states.append(next_states[-1])
 
-'''
-    # Without parallel predictions
+        trajectory_costs = np.zeros(self.num_simulated_paths)
+        for i in range(len(sampled_actions)):
+            trajectory_costs += self.cost(next_states[i])
 
-    def get_action(self, state):
-       """ YOUR CODE HERE """
-		""" Note: be careful to batch your simulations through the model for speed """
-       next_observations = []
-       observations = []
-       actions = []
-       num_act=env.action_space.n
-       for i in range(args.num_simulated_paths):
-          print('controller_path', i)
-          actions[i]=np.random.randint(num_act, size=horizon)
-          observations[i][0]=state
-          observations[i]=[dyn_model.predict(observations[i][j-1],actions[j-1]) for j in range(1,horizon)]
-          next_observations[i][horizon-1]=dyn_model.predict(observations[i][horizon-1])
-          next_observations[i][0:horizon-1]=observations[i][1:horizon]
-          cost[i]=trajectory_cost_fn(cost_fn, observations[i], actions[i], next_observations[i])
-
-        trajectories = {'observation': np.array(observations),
-                       'action': np.array(actions),
-                       'next_observation': np.array(next_observations),
-                       'cost'=np.array(cost)}
-        m=np.argmin(cost)
-        return m
-'''
-
+        return sampled_actions[0][np.argmin(trajectory_costs)], min(trajectory_costs)
