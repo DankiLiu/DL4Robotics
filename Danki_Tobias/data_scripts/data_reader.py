@@ -1,4 +1,6 @@
+import os
 import pandas as pd
+import numpy as np
 
 from Danki_Tobias.column_names import *
 
@@ -34,3 +36,15 @@ def save_normalization_variables(filename='random_samples_2020-12-16_21-18'):
     normalization_variables = pd.concat([states_normalized, actions_normalized, deltas_normalized], axis=0)
     normalization_variables.to_csv(f'{folder_path}normalization_variables/{filename}.csv')
 
+
+def store_in_file(observations, actions, deltas):
+    file_name = folder_path + 'rl_samples.csv'
+    print(f"Storing data in: {file_name}")
+
+    data = np.concatenate((observations, actions, deltas), axis=1)
+    rollout_df = pd.DataFrame(data, columns=state_columns + action_columns + delta_columns)
+
+    if os.path.isfile(file_name):
+        rollout_df.to_csv(file_name, mode='a', header=False, index=False)
+    else:
+        rollout_df.to_csv(file_name, index=False)

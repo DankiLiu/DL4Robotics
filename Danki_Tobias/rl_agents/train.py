@@ -6,74 +6,9 @@ import os
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from dynamicsModel import NNDynamicsModel
-from controller import MPCcontroller
+from controller import MPCcontroller, sample
 
-folder_path = '../data/reach_env/'
 random_data_file = 'random_samples_2020-12-16_21-18'
-
-"""
-def load_random_samples():  # TODO: pick dataset to load
-    df = pd.read_csv('../data/reach_env/random_samples_2020-12-16_21-18.csv', index_col=0)
-    states = df[state_columns]
-    actions = df[action_columns]
-    state_deltas = df[delta_columns]
-    return states, actions, state_deltas
-
-
-def compute_normalization_variables(data):
-    mean = data.mean()
-    std = data.std()
-    return [mean, std]
-"""
-
-
-def sample(env,
-           controller,
-           num_paths=10,
-           horizon=1000):
-    """
-        Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
-        and returns rollouts by running on the env.
-        Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
-    """
-    paths = []
-    rewards = []
-    costs = []
-    print("num_sum_path", num_paths)
-    for i in range(num_paths):
-        print("path :", i)
-        states = list()
-        actions = list()
-        next_states = list()
-        states.append(env.reset()[0:14])
-        # print(np.array(states).shape)
-        total_reward = 0
-        total_cost = 0
-        for j in range(horizon):
-            if j % 100 == 0:
-                print(j)
-            act, c = controller.get_action(states[j], env.sim.get_state())
-            actions.append(act)
-
-            obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
-
-            # extract relevant state information
-            next_states.append(obs[0:14])
-            if j != horizon - 1:
-                states.append(next_states[j])
-            total_reward += r
-            total_cost += c
-        # print(np.array(next_states).shape)
-        # print(np.array(states).shape)
-        path = {'observations': np.array(states),
-                'actions': np.array(actions),
-                'next_observations': np.array(next_states)
-                }
-        paths.append(path)
-        rewards.append(total_reward)
-        costs.append(total_cost)
-
-    return paths, rewards, costs
 
 
 def draw_training_samples(number_of_samples=100):
@@ -87,21 +22,7 @@ def draw_training_samples(number_of_samples=100):
     return states_sample, actions_sample, delta_sample
 
 
-def store_in_file(observations, actions, deltas):
-    file_name = folder_path + 'rl_samples.csv'
-    print("Storing data ... in data path ", file_name)
-
-    data = np.concatenate((observations, actions, deltas), axis=1)
-    rollout_df = pd.DataFrame(data, columns=state_columns + action_columns + delta_columns)
-
-    if os.path.isfile(file_name):
-        rollout_df.to_csv(file_name, mode='a', header=False, index=False)
-    else:
-        rollout_df.to_csv(file_name, index=False)
-
-
 # TODO: replace constant values to variables declared in header
-
 if __name__ == "__main__":
     controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
