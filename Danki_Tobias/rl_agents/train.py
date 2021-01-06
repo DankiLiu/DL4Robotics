@@ -3,14 +3,15 @@ import pandas as pd
 import tensorflow as tf
 import os
 
-from Danki_Tobias.column_names import *
+from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from dynamicsModel import NNDynamicsModel
 from controller import MPCcontroller
 
 folder_path = '../data/reach_env/'
+random_data_file = 'random_samples_2020-12-16_21-18'
 
-
+"""
 def load_random_samples():  # TODO: pick dataset to load
     df = pd.read_csv('../data/reach_env/random_samples_2020-12-16_21-18.csv', index_col=0)
     states = df[state_columns]
@@ -23,6 +24,7 @@ def compute_normalization_variables(data):
     mean = data.mean()
     std = data.std()
     return [mean, std]
+"""
 
 
 def sample(env,
@@ -39,7 +41,6 @@ def sample(env,
     costs = []
     print("num_sum_path", num_paths)
     for i in range(num_paths):
-        env.reset()
         print("path :", i)
         states = list()
         actions = list()
@@ -51,7 +52,7 @@ def sample(env,
         for j in range(horizon):
             if j % 100 == 0:
                 print(j)
-            act, c = controller.get_action(states[j])
+            act, c = controller.get_action(states[j], env.sim.get_state())
             actions.append(act)
 
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
@@ -102,34 +103,29 @@ def store_in_file(observations, actions, deltas):
 # TODO: replace constant values to variables declared in header
 
 if __name__ == "__main__":
-    env = ReachEnvJointVelCtrl(render=False, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
+    controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
     # Load D_rand
-    states_rand, actions_rand, state_deltas_rand = load_random_samples()
+    states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
+    normalization = load_normalization_variables(random_data_file)
 
     # initialize empty DataFrames representing D_rl
     states_rl = pd.DataFrame([], columns=state_columns)
     actions_rl = pd.DataFrame([], columns=action_columns)
     state_deltas_rl = pd.DataFrame([], columns=delta_columns)
 
-    normalization = dict()
-    normalization['observations'] = compute_normalization_variables(states_rand)
-    normalization['actions'] = compute_normalization_variables(actions_rand)
-    normalization['delta'] = compute_normalization_variables(state_deltas_rand)
-
-    dyn_model = NNDynamicsModel(env=env,
-                                n_layers=2,
-                                size=500,
-                                activation=tf.tanh,
-                                output_activation=None,
-                                normalization=normalization,
-                                batch_size=32,  # 512,
-                                iterations=150,
-                                learning_rate=1e-3)
+    dyn_model = NNDynamicsModel.new_model(env=env,
+                                          n_layers=2,
+                                          size=500,
+                                          activation=tf.tanh,
+                                          output_activation=None,
+                                          normalization=normalization,
+                                          batch_size=32,  # 512,
+                                          learning_rate=1e-3)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=env,
-                                   dyn_model=dyn_model, )
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, )
 
     # sample new training examples
     # retrain the model

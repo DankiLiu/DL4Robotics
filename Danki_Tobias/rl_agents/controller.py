@@ -41,8 +41,6 @@ class MPCcontroller(Controller):
         self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
 
-        self.box_position = self.env.environment_observations[0:3]
-
     def cost(self, next_state):
         position_state = next_state[:, :7]
         costs = np.zeros(self.num_simulated_paths)
@@ -56,12 +54,15 @@ class MPCcontroller(Controller):
             costs[index] = -self.env._reward
         return costs
 
-    def get_action(self, state):
+    def get_action(self, state, simulation_state):
+        # sample random actions
         sampled_actions = np.array(
             [[self.env.action_space.sample()[:7] for j in range(self.num_simulated_paths)] for i in
              range(self.horizon)])
         states = [np.array([state] * self.num_simulated_paths)]
         next_states = []
+
+        # predict the next state
         for i in range(self.horizon):
             states_df = pd.DataFrame(states[-1], columns=state_columns)
             actions_df = pd.DataFrame(sampled_actions[i, :], columns=action_columns)
@@ -70,6 +71,8 @@ class MPCcontroller(Controller):
             if i < self.horizon:
                 states.append(next_states[-1])
 
+        # calculate cost of each path
+        self.env.sim.set_state(simulation_state)
         trajectory_costs = np.zeros(self.num_simulated_paths)
         for i in range(len(sampled_actions)):
             trajectory_costs += self.cost(next_states[i])

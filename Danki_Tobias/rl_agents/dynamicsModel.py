@@ -25,36 +25,30 @@ def build_and_compile_model(output_size,
     return model
 
 
-def normalize(data, mean, std):
-    return (data - mean) / (std + 1e-10)
-
-
-def denormalize(data, mean, std):
-    return data * (std + 1e-10) + mean
-
-
 class NNDynamicsModel:
-    def __init__(self,
-                 env,
-                 n_layers,
-                 size,
-                 activation,
-                 output_activation,
-                 normalization,
-                 batch_size,
-                 iterations,
-                 learning_rate,
-                 ):
+    def __init__(self, env, normalization, model, batch_size=512):
         self.normalization = normalization
-        self.iterations = iterations
         self.batch_size = batch_size
         # ob_dim = env.observation_dim.shape[0]  # local variables of init just for convinience
         # ac_dim = env.action_space.shape[0]
 
+        self.model = model
+
+    @classmethod
+    def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
         ob_dim = 14
         ac_dim = 7
+        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
 
-        self.model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
+        return cls(env, normalization, model, batch_size)
+
+    def normalize(self, data):
+        normalization_values = self.normalization.loc[data.columns]
+        return (data - normalization_values['mean']) / (normalization_values['std'] + 1e-10)
+
+    def denormalize(self, data):
+        normalization_values = self.normalization.loc[data.columns]
+        return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
 
     def fit(self, states, actions, deltas):
         """
@@ -62,10 +56,9 @@ class NNDynamicsModel:
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
         """
         ### normalize
-        states_normalized = normalize(states, self.normalization['observations'][0],
-                                      self.normalization['observations'][1])
-        deltas_normalized = normalize(deltas, self.normalization['delta'][0], self.normalization['delta'][1])
-        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
+        states_normalized = self.normalize(states)
+        deltas_normalized = self.normalize(deltas)
+        actions_normalized = self.normalize(actions)
 
         # combine state and action to input
         input = states_normalized.join(actions_normalized)
@@ -77,15 +70,14 @@ class NNDynamicsModel:
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
         and return the (unnormalized) next states as predicted by using the model """
         ### normalize
-        states_normalized = normalize(states, self.normalization['observations'][0],
-                                      self.normalization['observations'][1])
-        actions_normalized = normalize(actions, self.normalization['actions'][0], self.normalization['actions'][1])
+        states_normalized = self.normalize(states)
+        actions_normalized = self.normalize(actions)
 
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
         predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
-        predictions = denormalize(predictions, self.normalization['delta'][0], self.normalization['delta'][1])
+        predictions = self.denormalize(predictions)
 
         states.columns = delta_columns
         states.reset_index(drop=True, inplace=True)
