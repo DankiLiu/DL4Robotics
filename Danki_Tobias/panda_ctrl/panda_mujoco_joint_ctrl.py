@@ -58,11 +58,26 @@ class PandaJointControl(PandaBase):
                                tcp_velp,
                                tcp_velr])
 
+    def get_workspace(self):
+        workspace_low = np.array([self.sim.data.get_site_xpos('x_constrain_low')[0],
+                                  self.sim.data.get_site_xpos('y_constrain_low')[1],
+                                  self.sim.data.get_site_xpos('z_constrain_low')[2]])
+
+        workspace_high = np.array([self.sim.data.get_site_xpos('x_constrain_high')[0],
+                                   self.sim.data.get_site_xpos('y_constrain_high')[1],
+                                   self.sim.data.get_site_xpos('z_constrain_high')[2]])
+
+        return gym.spaces.Box(low=workspace_low, high=workspace_high)
+
 
 class PandaJointVelControlCrippled(PandaJointControl):
     def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
         self.crippled = crippled
         super().__init__(render=render)
+
+    def env_setup(self, sim, viewer):
+        super().env_setup(sim, viewer)
+        self.workspace = self.get_workspace()
 
     @property
     def action_space(self):

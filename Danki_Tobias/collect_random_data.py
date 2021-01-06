@@ -105,6 +105,6 @@ num_rollouts_val = 20
 steps_per_rollout_train = 1000
 steps_per_rollout_val = 200
 
-# collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
-collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
+collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
+# collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
 

@@ -13,7 +13,7 @@ class ReachEnvBase(MujocoEnv):
     """
 
     def __init__(self, agent, render=True, max_steps=2000,
-                 nsubsteps=1, dt=2e-3, random_env=False, workspace_size='medium'):
+                 nsubsteps=1, dt=2e-3, random_env=True, workspace_size='medium'):
         self._box = env_objects.Box()
         super().__init__(agent=agent, obj_list=[self._box], max_steps=max_steps, render=render,
                          nsubsteps=nsubsteps, dt=dt, random_env=random_env, workspace_size=workspace_size)

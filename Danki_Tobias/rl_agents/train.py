@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import os
 
 from Danki_Tobias.column_names import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from dynamicsModel import NNDynamicsModel
 from controller import MPCcontroller
 
-
-# from controller import MPCcontroller
+folder_path = '../data/reach_env/'
 
 
 def load_random_samples():  # TODO: pick dataset to load
@@ -39,6 +39,7 @@ def sample(env,
     costs = []
     print("num_sum_path", num_paths)
     for i in range(num_paths):
+        env.reset()
         print("path :", i)
         states = list()
         actions = list()
@@ -85,6 +86,19 @@ def draw_training_samples(number_of_samples=100):
     return states_sample, actions_sample, delta_sample
 
 
+def store_in_file(observations, actions, deltas):
+    file_name = folder_path + 'rl_samples.csv'
+    print("Storing data ... in data path ", file_name)
+
+    data = np.concatenate((observations, actions, deltas), axis=1)
+    rollout_df = pd.DataFrame(data, columns=state_columns + action_columns + delta_columns)
+
+    if os.path.isfile(file_name):
+        rollout_df.to_csv(file_name, mode='a', header=False, index=False)
+    else:
+        rollout_df.to_csv(file_name, index=False)
+
+
 # TODO: replace constant values to variables declared in header
 
 if __name__ == "__main__":
@@ -123,6 +137,8 @@ if __name__ == "__main__":
         print(f'iteration: {iteration}')
         dyn_model.fit(*draw_training_samples(5))
 
+        dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
+
         # Generate trajectories from MPC controllers
         paths, rewards, costs = sample(env, mpc_controller, horizon=2, num_paths=2)
 
@@ -130,6 +146,8 @@ if __name__ == "__main__":
         actions = np.concatenate([path["actions"] for path in paths])
         next_observations = np.concatenate([path["next_observations"] for path in paths])
         observation_delta = next_observations - observations
+
+        store_in_file(observations, actions, observation_delta)
 
         states_rl = states_rl.append(pd.DataFrame(observations, columns=state_columns))
         actions_rl = actions_rl.append(pd.DataFrame(actions, columns=action_columns))
