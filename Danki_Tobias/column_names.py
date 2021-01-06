@@ -1,10 +1,12 @@
-state_columns = ['state_position_0', 'state_position_1', 'state_position_2', 'state_position_3', 'state_position_4',
-                 'state_position_5', 'state_position_6', 'state_velocity_0', 'state_velocity_1', 'state_velocity_2',
-                 'state_velocity_3', 'state_velocity_4', 'state_velocity_5', 'state_velocity_6']
+state_columns = ['state_positions_0', 'state_positions_1', 'state_positions_2', 'state_positions_3',
+                 'state_positions_4', 'state_positions_5', 'state_positions_6', 'state_velocities_0',
+                 'state_velocities_1', 'state_velocities_2', 'state_velocities_3', 'state_velocities_4',
+                 'state_velocities_5', 'state_velocities_6']
 
-action_columns = ['action_0', 'action_1', 'action_2', 'action_3', 'action_4', 'action_5', 'action_6']
+action_columns = ['actions_0', 'actions_1', 'actions_2', 'actions_3', 'actions_4', 'actions_5', 'actions_6']
 
-delta_columns = ['state_delta_position_0', 'state_delta_position_1', 'state_delta_position_2',
-                 'state_delta_position_3', 'state_delta_position_4', 'state_delta_position_5', 'state_delta_position_6',
-                 'state_delta_velocity_0', 'state_delta_velocity_1', 'state_delta_velocity_2', 'state_delta_velocity_3',
-                 'state_delta_velocity_4', 'state_delta_velocity_5', 'state_delta_velocity_6']
+delta_columns = ['state_delta_positions_0', 'state_delta_positions_1', 'state_delta_positions_2',
+                 'state_delta_positions_3', 'state_delta_positions_4', 'state_delta_positions_5',
+                 'state_delta_positions_6', 'state_delta_velocities_0', 'state_delta_velocities_1',
+                 'state_delta_velocities_2', 'state_delta_velocities_3', 'state_delta_velocities_4',
+                 'state_delta_velocities_5', 'state_delta_velocities_6']

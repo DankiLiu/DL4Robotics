@@ -15,6 +15,14 @@ def load_random_samples(filename):
     return states, actions, state_deltas
 
 
+def load_rl_samples():
+    df = pd.read_csv(f'{folder_path}rl_samples.csv', dtype='float64')
+    states = df[state_columns]
+    actions = df[action_columns]
+    state_deltas = df[delta_columns]
+    return states, actions, state_deltas
+
+
 def load_normalization_variables(filename):
     return pd.read_csv(f'{folder_path}normalization_variables/{filename}.csv', index_col=0)
 

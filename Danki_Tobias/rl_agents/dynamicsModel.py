@@ -50,7 +50,7 @@ class NNDynamicsModel:
         normalization_values = self.normalization.loc[data.columns]
         return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
 
-    def fit(self, states, actions, deltas):
+    def fit(self, states, actions, deltas, N_EPOCHS=50):
         """
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
@@ -62,8 +62,9 @@ class NNDynamicsModel:
 
         # combine state and action to input
         input = states_normalized.join(actions_normalized)
+        print(input)
+        print(deltas_normalized)
 
-        N_EPOCHS = 50
         self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 
     def predict(self, states, actions):
