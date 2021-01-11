@@ -9,6 +9,7 @@ folder_path = '../data/reach_env/'
 
 def load_random_samples(filename):
     df = pd.read_csv(f'{folder_path}{filename}.csv', index_col=0)
+    # df = df.reset_index(drop=True)
     states = df[state_columns]
     actions = df[action_columns]
     state_deltas = df[delta_columns]
@@ -17,6 +18,7 @@ def load_random_samples(filename):
 
 def load_rl_samples():
     df = pd.read_csv(f'{folder_path}rl_samples.csv', dtype='float64')
+    # df = df.reset_index(drop=True)
     states = df[state_columns]
     actions = df[action_columns]
     state_deltas = df[delta_columns]

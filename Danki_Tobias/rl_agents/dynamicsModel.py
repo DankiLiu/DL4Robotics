@@ -57,13 +57,14 @@ class NNDynamicsModel:
         """
         ### normalize
         states_normalized = self.normalize(states)
-        deltas_normalized = self.normalize(deltas)
         actions_normalized = self.normalize(actions)
+        deltas_normalized = self.normalize(deltas)
 
         # combine state and action to input
-        input = states_normalized.join(actions_normalized)
-        print(input)
-        print(deltas_normalized)
+        # states_normalized = states_normalized.reset_index(True)
+        # actions_normalized = actions_normalized.reset_index(True)
+        # deltas_normalized = deltas_normalized.reset_index(True)
+        input = states_normalized.join(actions_normalized, how='inner')
 
         self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 
@@ -77,10 +78,9 @@ class NNDynamicsModel:
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
+        predictions = pd.DataFrame(self.model.predict(input), columns=state_columns)
         predictions = self.denormalize(predictions)
 
-        states.columns = delta_columns
         states.reset_index(drop=True, inplace=True)
 
         return predictions + states

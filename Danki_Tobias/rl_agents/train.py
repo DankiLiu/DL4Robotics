@@ -23,13 +23,16 @@ def draw_training_samples(number_of_samples=100000):
     states_rl, actions_rl, state_deltas_rl = load_rl_samples()
 
     all_states = states_rl.append(states_rand)
+    print(all_states)
+    all_states = all_states.reset_index(drop=True)
     all_actions = actions_rl.append(actions_rand)
+    all_actions = all_actions.reset_index(drop=True)
     all_deltas = state_deltas_rl.append(state_deltas_rand)
+    all_deltas = all_deltas.reset_index(drop=True)
 
-    states_sample = all_states.sample(n=number_of_samples, replace=True)
-    actions_sample = all_actions.loc[states_sample.index]
-    delta_sample = all_deltas.loc[states_sample.index]
-
+    states_sample = all_states.sample(n=number_of_samples, replace=False)
+    actions_sample = all_actions.iloc[states_sample.index]
+    delta_sample = all_deltas.iloc[states_sample.index]
     return states_sample, actions_sample, delta_sample
 
 
@@ -41,15 +44,15 @@ if __name__ == "__main__":
     normalization = load_normalization_variables(random_data_file)
     dyn_model = NNDynamicsModel.new_model(env=env,
                                           n_layers=2,
-                                          size=500,
+                                          size=64,
                                           activation=tf.tanh,
                                           output_activation=None,
                                           normalization=normalization,
-                                          batch_size=1024,
+                                          batch_size=512,
                                           learning_rate=1e-3)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, )
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=500)
 
     # sample new training examples
     # retrain the model
@@ -59,13 +62,14 @@ if __name__ == "__main__":
 
         dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
 
-        # Generate trajectories from MPC controllers
-        paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                       num_paths=new_paths_per_iteration)
+        if False:
+            # Generate trajectories from MPC controllers
+            paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
+                                           num_paths=new_paths_per_iteration)
 
-        observations = np.concatenate([path["observations"] for path in paths])
-        actions = np.concatenate([path["actions"] for path in paths])
-        next_observations = np.concatenate([path["next_observations"] for path in paths])
-        observation_delta = next_observations - observations
+            observations = np.concatenate([path["observations"] for path in paths])
+            actions = np.concatenate([path["actions"] for path in paths])
+            next_observations = np.concatenate([path["next_observations"] for path in paths])
+            observation_delta = next_observations - observations
 
-        store_in_file(observations, actions, observation_delta)
+            store_in_file(observations, actions, observation_delta)

@@ -25,25 +25,27 @@ def sample(env,
         actions = list()
         next_states = list()
         states.append(env.reset()[0:14])
-        # print(np.array(states).shape)
         total_reward = 0
         total_cost = 0
         for j in range(horizon):
             if j % 100 == 0:
                 print(j)
-            act, c = controller.get_action(states[j], env.sim.get_state())
+            act, cost = controller.get_action(states[j], env.sim.get_state())
             actions.append(act)
 
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
+
+            if done:
+                print('Done')
+                break
 
             # extract relevant state information
             next_states.append(obs[0:14])
             if j != horizon - 1:
                 states.append(next_states[j])
             total_reward += r
-            total_cost += c
-        # print(np.array(next_states).shape)
-        # print(np.array(states).shape)
+            total_cost += cost
+            
         path = {'observations': np.array(states),
                 'actions': np.array(actions),
                 'next_observations': np.array(next_states)
