@@ -1,0 +1,23 @@
+{
+  "data_collection":
+  {
+    "num_rollouts_train": 700,
+    "num_rollouts_val": 20
+  },
+
+  "dyn_model": {
+
+  },
+
+  "controller": {
+    "horizon": 5,
+    "num_control_samples": 15000
+  },
+
+  "steps": {
+    "steps_per_episode": 1000,
+    "steps_per_rollout_train": 1000,
+    "steps_per_rollout_val": 200
+  }
+
+}

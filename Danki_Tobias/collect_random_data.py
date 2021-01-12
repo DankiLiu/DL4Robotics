@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
-
+from Danki_Tobias.helper.get_parameters import data_collection_params
 folder_path = './data/reach_env/'
 dateTimeObj = dt.datetime.now()
 
@@ -12,6 +12,12 @@ timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dat
 '''
 Generate #steps_per_rollout samples for every rollout.
 '''
+num_rollouts_train, num_rollouts_val, \
+steps_per_rollout_train, steps_per_rollout_val \
+    = data_collection_params()
+
+print(num_rollouts_train, num_rollouts_val, \
+steps_per_rollout_train, steps_per_rollout_val)
 
 def random_rollout(steps_per_rollout):
     # Init environment
@@ -68,11 +74,6 @@ def samples_array_to_df(rollout_num, state_positions, state_velocities, state_de
     df = pd.DataFrame(dict)
     print(df.head)
     return df
-"""
-Todo: store data correctly
-look at the step in the paper
-"""
-
 
 def collect_random_samples(number_rollouts, steps_per_rollout, is_val=False):
     all_rollouts: pd.DataFrame = pd.DataFrame()
@@ -99,12 +100,7 @@ def store_in_file(rollout_df: pd.DataFrame, is_val):
         print("in data path ", file_name)
         store(file_name, rollout_df)
 
-num_rollouts_train = 700
-num_rollouts_val = 20
-
-steps_per_rollout_train = 1000
-steps_per_rollout_val = 200
-
-collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
-# collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
+if False:
+    collect_random_samples(number_rollouts=num_rollouts_train, steps_per_rollout=steps_per_rollout_train)
+    collect_random_samples(number_rollouts=num_rollouts_val, steps_per_rollout=steps_per_rollout_val, is_val=True)
 
