@@ -3,152 +3,73 @@ import pandas as pd
 import tensorflow as tf
 import os
 
-from Danki_Tobias.column_names import *
+from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from dynamicsModel import NNDynamicsModel
-from controller import MPCcontroller
+from controller import MPCcontroller, sample
 
-folder_path = '../data/reach_env/'
+random_data_file = 'random_samples_2021-1-6_11-49'
+# random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
+iterations = 100
+training_epochs = 20
 
-def load_random_samples():  # TODO: pick dataset to load
-    df = pd.read_csv('../data/reach_env/random_samples_2020-12-16_21-18.csv', index_col=0)
-    states = df[state_columns]
-    actions = df[action_columns]
-    state_deltas = df[delta_columns]
-    return states, actions, state_deltas
-
-
-def compute_normalization_variables(data):
-    mean = data.mean()
-    std = data.std()
-    return [mean, std]
+new_paths_per_iteration = 10
+length_of_new_paths = 500
 
 
-def sample(env,
-           controller,
-           num_paths=10,
-           horizon=1000):
-    """
-        Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
-        and returns rollouts by running on the env.
-        Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
-    """
-    paths = []
-    rewards = []
-    costs = []
-    print("num_sum_path", num_paths)
-    for i in range(num_paths):
-        env.reset()
-        print("path :", i)
-        states = list()
-        actions = list()
-        next_states = list()
-        states.append(env.reset()[0:14])
-        # print(np.array(states).shape)
-        total_reward = 0
-        total_cost = 0
-        for j in range(horizon):
-            if j % 100 == 0:
-                print(j)
-            act, c = controller.get_action(states[j])
-            actions.append(act)
+def draw_training_samples(number_of_samples=100000):
+    states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
+    states_rl, actions_rl, state_deltas_rl = load_rl_samples()
 
-            obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
-
-            # extract relevant state information
-            next_states.append(obs[0:14])
-            if j != horizon - 1:
-                states.append(next_states[j])
-            total_reward += r
-            total_cost += c
-        # print(np.array(next_states).shape)
-        # print(np.array(states).shape)
-        path = {'observations': np.array(states),
-                'actions': np.array(actions),
-                'next_observations': np.array(next_states)
-                }
-        paths.append(path)
-        rewards.append(total_reward)
-        costs.append(total_cost)
-
-    return paths, rewards, costs
-
-
-def draw_training_samples(number_of_samples=100):
     all_states = states_rl.append(states_rand)
+    print(all_states)
+    all_states = all_states.reset_index(drop=True)
     all_actions = actions_rl.append(actions_rand)
+    all_actions = all_actions.reset_index(drop=True)
     all_deltas = state_deltas_rl.append(state_deltas_rand)
+    all_deltas = all_deltas.reset_index(drop=True)
 
-    states_sample = all_states.sample(n=number_of_samples, replace=True)
-    actions_sample = all_actions.loc[states_sample.index]
-    delta_sample = all_deltas.loc[states_sample.index]
+    states_sample = all_states.sample(n=number_of_samples, replace=False)
+    actions_sample = all_actions.iloc[states_sample.index]
+    delta_sample = all_deltas.iloc[states_sample.index]
     return states_sample, actions_sample, delta_sample
 
 
-def store_in_file(observations, actions, deltas):
-    file_name = folder_path + 'rl_samples.csv'
-    print("Storing data ... in data path ", file_name)
-
-    data = np.concatenate((observations, actions, deltas), axis=1)
-    rollout_df = pd.DataFrame(data, columns=state_columns + action_columns + delta_columns)
-
-    if os.path.isfile(file_name):
-        rollout_df.to_csv(file_name, mode='a', header=False, index=False)
-    else:
-        rollout_df.to_csv(file_name, index=False)
-
-
 # TODO: replace constant values to variables declared in header
-
 if __name__ == "__main__":
-    env = ReachEnvJointVelCtrl(render=False, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
+    controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
-    # Load D_rand
-    states_rand, actions_rand, state_deltas_rand = load_random_samples()
-
-    # initialize empty DataFrames representing D_rl
-    states_rl = pd.DataFrame([], columns=state_columns)
-    actions_rl = pd.DataFrame([], columns=action_columns)
-    state_deltas_rl = pd.DataFrame([], columns=delta_columns)
-
-    normalization = dict()
-    normalization['observations'] = compute_normalization_variables(states_rand)
-    normalization['actions'] = compute_normalization_variables(actions_rand)
-    normalization['delta'] = compute_normalization_variables(state_deltas_rand)
-
-    dyn_model = NNDynamicsModel(env=env,
-                                n_layers=2,
-                                size=500,
-                                activation=tf.tanh,
-                                output_activation=None,
-                                normalization=normalization,
-                                batch_size=32,  # 512,
-                                iterations=150,
-                                learning_rate=1e-3)
+    normalization = load_normalization_variables(random_data_file)
+    dyn_model = NNDynamicsModel.new_model(env=env,
+                                          n_layers=2,
+                                          size=64,
+                                          activation=tf.tanh,
+                                          output_activation=None,
+                                          normalization=normalization,
+                                          batch_size=512,
+                                          learning_rate=1e-3)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=env,
-                                   dyn_model=dyn_model, )
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=500)
 
     # sample new training examples
     # retrain the model
-    for iteration in range(3):
+    for iteration in range(iterations):
         print(f'iteration: {iteration}')
-        dyn_model.fit(*draw_training_samples(5))
+        dyn_model.fit(*draw_training_samples(), N_EPOCHS=training_epochs)
 
         dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
 
-        # Generate trajectories from MPC controllers
-        paths, rewards, costs = sample(env, mpc_controller, horizon=2, num_paths=2)
+        if False:
+            # Generate trajectories from MPC controllers
+            paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
+                                           num_paths=new_paths_per_iteration)
 
-        observations = np.concatenate([path["observations"] for path in paths])
-        actions = np.concatenate([path["actions"] for path in paths])
-        next_observations = np.concatenate([path["next_observations"] for path in paths])
-        observation_delta = next_observations - observations
+            observations = np.concatenate([path["observations"] for path in paths])
+            actions = np.concatenate([path["actions"] for path in paths])
+            next_observations = np.concatenate([path["next_observations"] for path in paths])
+            observation_delta = next_observations - observations
 
-        store_in_file(observations, actions, observation_delta)
-
-        states_rl = states_rl.append(pd.DataFrame(observations, columns=state_columns))
-        actions_rl = actions_rl.append(pd.DataFrame(actions, columns=action_columns))
-        state_deltas_rl = state_deltas_rl.append(pd.DataFrame(observation_delta, columns=delta_columns))
+            store_in_file(observations, actions, observation_delta)

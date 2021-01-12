@@ -17,7 +17,8 @@ class ReachEnvBase(MujocoEnv):
         self._box = env_objects.Box()
         super().__init__(agent=agent, obj_list=[self._box], max_steps=max_steps, render=render,
                          nsubsteps=nsubsteps, dt=dt, random_env=random_env, workspace_size=workspace_size)
-        self.target_min_dist = 0.02
+        #self.target_min_dist = 0.02
+        self.target_min_dist = 0.1
 
     @property
     def environment_observations(self):
