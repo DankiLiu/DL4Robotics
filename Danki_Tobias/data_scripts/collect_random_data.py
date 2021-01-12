@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import os
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
-<<<<<<< HEAD:Danki_Tobias/collect_random_data.py
 from Danki_Tobias.helper.get_parameters import data_collection_params
 
 folder_path = '../data/reach_env/'
