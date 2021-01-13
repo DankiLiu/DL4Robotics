@@ -25,5 +25,7 @@ def obj_distance(sim, obj1: str, obj2: str):
     obj1_pos = obj_position(sim, obj1)
     obj2_pos = obj_position(sim, obj2)
     dist = np.linalg.norm(obj1_pos - obj2_pos)
+    if dist == 0:
+        return dist, 0.0
     rel_dist = (obj1_pos - obj2_pos) / dist + 1e-8
     return dist, rel_dist
