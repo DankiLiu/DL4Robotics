@@ -6,8 +6,8 @@ import os
 
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
-from dynamicsModel import NNDynamicsModel
-from controller import MPCcontroller, sample
+from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
+from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
 random_data_file = 'random_samples_2021-1-6_11-49'
 
