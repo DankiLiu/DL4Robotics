@@ -35,9 +35,9 @@ def sample(env,
 
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
-            if done:
-                print('Done')
-                break
+            #if done:
+            #    print('Done')
+            #    break
 
             # extract relevant state information
             next_states.append(obs[0:14])

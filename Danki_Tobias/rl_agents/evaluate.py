@@ -49,13 +49,14 @@ def calculate_errors():
 
 
 def visualize_paths(num_paths, path_length):
+    # TODO: do we need to cripple both environments or keep the controller_env unchanged
     controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
     env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
-    dyn_model = load_model(env, model_checkpoint=0)
+    dyn_model = load_model(env, model_checkpoint=99)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=50)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100)
     sample(env, mpc_controller, horizon=path_length, num_paths=num_paths)
 
 

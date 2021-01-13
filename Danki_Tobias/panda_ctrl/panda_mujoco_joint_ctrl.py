@@ -88,8 +88,8 @@ class PandaJointVelControlCrippled(PandaJointControl):
         low = low * self.crippled
         high = high * self.crippled
 
-        action_space = gym.spaces.Box(low=np.array(low),
-                                      high=np.array(high))
+        # Setting dtype=np.int enables a better sampling of actions, but the gripper can not be used anymore
+        action_space = gym.spaces.Box(low=np.array(low), high=np.array(high), dtype=np.int)
 
         return action_space
 
