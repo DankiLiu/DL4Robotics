@@ -14,5 +14,13 @@ def data_collection_params():
 
         return num_rollouts_train, num_rollouts_val, steps_per_rollout_train, steps_per_rollout_val
     except:
-        logging.info("Load data collection parameters error")
+        logging.info("Load data collection parameters error.")
 
+def controller_params():
+    try:
+        horizon = data["controller"]["horizon"]
+        num_control_samples = data["controller"]["num_control_samples"]
+
+        return horizon, num_control_samples
+    except:
+        logging.info("Load controller parameters error.")
