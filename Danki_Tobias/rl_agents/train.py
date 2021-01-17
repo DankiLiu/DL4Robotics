@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import os
+import csv
 
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
@@ -12,7 +13,7 @@ random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
 iterations = 100
-training_epochs = 20
+training_epochs = 50
 
 new_paths_per_iteration = 10
 length_of_new_paths = 500
@@ -20,10 +21,9 @@ length_of_new_paths = 500
 
 def draw_training_samples(number_of_samples=100000):
     states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
-    states_rl, actions_rl, state_deltas_rl = load_rl_samples()
+    states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=1)
 
     all_states = states_rl.append(states_rand)
-    print(all_states)
     all_states = all_states.reset_index(drop=True)
     all_actions = actions_rl.append(actions_rand)
     all_actions = all_actions.reset_index(drop=True)
@@ -34,6 +34,12 @@ def draw_training_samples(number_of_samples=100000):
     actions_sample = all_actions.iloc[states_sample.index]
     delta_sample = all_deltas.iloc[states_sample.index]
     return states_sample, actions_sample, delta_sample
+
+
+def save_rewards(rewards):
+    with open("../data/reach_env/samples_1_rewards.csv", "a+") as file:
+        wr = csv.writer(file)
+        wr.writerow(rewards)
 
 
 # TODO: replace constant values to variables declared in header
@@ -52,7 +58,7 @@ if __name__ == "__main__":
                                           learning_rate=1e-3)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=500)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100)
 
     # sample new training examples
     # retrain the model
@@ -62,14 +68,15 @@ if __name__ == "__main__":
 
         dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
 
-        if False:
-            # Generate trajectories from MPC controllers
-            paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                           num_paths=new_paths_per_iteration)
+        # Generate new trajectories with the MPC controllers
+        paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
+                                       num_paths=new_paths_per_iteration)
 
-            observations = np.concatenate([path["observations"] for path in paths])
-            actions = np.concatenate([path["actions"] for path in paths])
-            next_observations = np.concatenate([path["next_observations"] for path in paths])
-            observation_delta = next_observations - observations
+        save_rewards(rewards)
 
-            store_in_file(observations, actions, observation_delta)
+        observations = np.concatenate([path["observations"] for path in paths])
+        actions = np.concatenate([path["actions"] for path in paths])
+        next_observations = np.concatenate([path["next_observations"] for path in paths])
+        observation_delta = next_observations - observations
+
+        store_in_file(observations, actions, observation_delta, collection=1)

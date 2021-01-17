@@ -35,17 +35,17 @@ def sample(env,
 
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
-            #if done:
-            #    print('Done')
-            #    break
-
             # extract relevant state information
             next_states.append(obs[0:14])
             if j != horizon - 1:
                 states.append(next_states[j])
             total_reward += r
             total_cost += cost
-            
+
+            if done:
+                print('Done')
+                break
+
         path = {'observations': np.array(states),
                 'actions': np.array(actions),
                 'next_observations': np.array(next_states)

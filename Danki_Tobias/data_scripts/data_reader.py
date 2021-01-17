@@ -16,8 +16,8 @@ def load_random_samples(filename):
     return states, actions, state_deltas
 
 
-def load_rl_samples():
-    df = pd.read_csv(f'{folder_path}rl_samples.csv', dtype='float64')
+def load_rl_samples(collection):
+    df = pd.read_csv(f'{folder_path}rl_samples_{collection}.csv', dtype='float64')
     # df = df.reset_index(drop=True)
     states = df[state_columns]
     actions = df[action_columns]
@@ -47,8 +47,8 @@ def save_normalization_variables(filename='random_samples_2020-12-16_21-18'):
     normalization_variables.to_csv(f'{folder_path}normalization_variables/{filename}.csv')
 
 
-def store_in_file(observations, actions, deltas):
-    file_name = folder_path + 'rl_samples.csv'
+def store_in_file(observations, actions, deltas, collection):
+    file_name = f'{folder_path}rl_samples_{collection}.csv'
     print(f"Storing data in: {file_name}")
 
     data = np.concatenate((observations, actions, deltas), axis=1)
