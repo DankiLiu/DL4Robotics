@@ -20,6 +20,7 @@ def build_and_compile_model(output_size,
     model = keras.Sequential()
     for _ in range(n_layers):
         model.add(layers.Dense(size, activation=activation))
+
     model.add(layers.Dense(output_size, activation=output_activation))
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
@@ -56,19 +57,23 @@ class NNDynamicsModel:
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
         """
+        print(states.iloc[0])
+        print(actions.iloc[0])
+        print(deltas.iloc[0])
+
         ### normalize
         states_normalized = self.normalize(states)
         actions_normalized = self.normalize(actions)
         deltas_normalized = self.normalize(deltas)
-
-        states_denorm = self.denormalize(states_normalized)
-
 
         # combine state and action to input
         # states_normalized = states_normalized.reset_index(True)
         # actions_normalized = actions_normalized.reset_index(True)
         # deltas_normalized = deltas_normalized.reset_index(True)
         input = states_normalized.join(actions_normalized, how='inner')
+        print(input.iloc[0])
+        print(input.iloc[0].values)
+        exit()
 
         self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 
@@ -82,9 +87,9 @@ class NNDynamicsModel:
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        predictions = pd.DataFrame(self.model.predict(input), columns=state_columns)
+        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
         predictions = self.denormalize(predictions)
+        predictions.columns = state_columns
 
         states.reset_index(drop=True, inplace=True)
-
         return predictions + states

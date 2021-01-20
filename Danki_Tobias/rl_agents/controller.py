@@ -32,8 +32,8 @@ def sample(env,
             if j % 100 == 0:
                 print(j)
             act, cost = controller.get_action(states[j], env.sim.get_state())
-            actions.append(act)
 
+            actions.append(act)
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
             # extract relevant state information
@@ -79,6 +79,7 @@ class RandomController(Controller):
 
 class MPCcontroller(Controller):
     """ Controller built using the MPC method outlined in https://arxiv.org/abs/1708.02596 """
+
     def __init__(self,
                  env,
                  dyn_model,

@@ -84,6 +84,8 @@ class PandaJointVelControlCrippled(PandaJointControl):
         # upper and lower bound for each joint velocity
         low = [-87, -87, -87, -87, -12, -12, -12, -1]
         high = [87, 87, 87, 87, 12, 12, 12, 1]
+        # low = [-100, -100, -100, -100, -100, -100, -100, -1]
+        # high = [100, 100, 100, 100, 100, 100, 100, 1]
 
         low = low * self.crippled
         high = high * self.crippled

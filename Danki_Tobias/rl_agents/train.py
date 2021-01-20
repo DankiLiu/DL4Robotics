@@ -16,8 +16,8 @@ random_data_file = 'random_samples_2021-1-6_11-49'
 model_id = 2  # is also the number of the rl_samples file
 
 # if new model = True a new model is created, else set previous_checkpoint to latest finished training iteration to continue training
-new_model = True
-previous_checkpoint = 0
+new_model = False
+previous_checkpoint = 28
 
 # training parameters
 iterations = 100
@@ -108,5 +108,5 @@ if __name__ == "__main__":
 
         store_in_file(observations, actions, observation_delta, collection=model_id)
         dyn_model.model.save(
-            filepath=f'../models/model_{model_id}/iteration_{iteration + previous_checkpoint}.hdf5')
+            filepath=f'../models/model_{model_id}/iteration_{iteration + previous_checkpoint + 1}.hdf5')
         print('Model saved')
