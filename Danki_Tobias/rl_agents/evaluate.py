@@ -53,10 +53,10 @@ def visualize_paths(num_paths, path_length):
     controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
     env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
-    dyn_model = load_model(env, model_checkpoint=99)
+    dyn_model = load_model(env, model_checkpoint=70)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=200)
     sample(env, mpc_controller, horizon=path_length, num_paths=num_paths)
 
 
