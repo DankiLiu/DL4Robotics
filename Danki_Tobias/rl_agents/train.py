@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 import os
 import csv
+from tensorflow import keras
 
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
@@ -18,10 +19,16 @@ training_epochs = 50
 new_paths_per_iteration = 10
 length_of_new_paths = 500
 
+rl_data_collection = 1
+
+# if new model = True a new model is created, else set model_checkpoint to latest finished training iteration to continue training
+new_model = False
+model_checkpoint = 27
+
 
 def draw_training_samples(number_of_samples=100000):
     states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
-    states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=1)
+    states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=rl_data_collection)
 
     all_states = states_rl.append(states_rand)
     all_states = all_states.reset_index(drop=True)
@@ -37,7 +44,9 @@ def draw_training_samples(number_of_samples=100000):
 
 
 def save_rewards(rewards):
-    with open("../data/reach_env/samples_1_rewards.csv", "a+") as file:
+    average_reward = sum(rewards) / new_paths_per_iteration
+    print(f'average_reward{average_reward}')
+    with open(f"../data/reach_env/samples_{rl_data_collection}_rewards.csv", "a+") as file:
         wr = csv.writer(file)
         wr.writerow(rewards)
 
@@ -48,14 +57,19 @@ if __name__ == "__main__":
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
     normalization = load_normalization_variables(random_data_file)
-    dyn_model = NNDynamicsModel.new_model(env=env,
-                                          n_layers=2,
-                                          size=64,
-                                          activation=tf.tanh,
-                                          output_activation=None,
-                                          normalization=normalization,
-                                          batch_size=512,
-                                          learning_rate=1e-3)
+
+    if new_model:
+        dyn_model = NNDynamicsModel.new_model(env=env,
+                                              n_layers=2,
+                                              size=64,
+                                              activation=tf.tanh,
+                                              output_activation=None,
+                                              normalization=normalization,
+                                              batch_size=512,
+                                              learning_rate=1e-3)
+    else:
+        model = keras.models.load_model(filepath=f'../models/iteration_{model_checkpoint}.hdf5')
+        dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
 
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100)
@@ -65,8 +79,6 @@ if __name__ == "__main__":
     for iteration in range(iterations):
         print(f'iteration: {iteration}')
         dyn_model.fit(*draw_training_samples(), N_EPOCHS=training_epochs)
-
-        dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
 
         # Generate new trajectories with the MPC controllers
         paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
@@ -79,4 +91,6 @@ if __name__ == "__main__":
         next_observations = np.concatenate([path["next_observations"] for path in paths])
         observation_delta = next_observations - observations
 
-        store_in_file(observations, actions, observation_delta, collection=1)
+        store_in_file(observations, actions, observation_delta, collection=rl_data_collection)
+        dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
+        print('Model saved')
