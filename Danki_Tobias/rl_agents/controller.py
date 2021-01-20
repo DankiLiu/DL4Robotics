@@ -9,7 +9,8 @@ import time
 def sample(env,
            controller,
            num_paths=10,
-           horizon=1000):
+           horizon=1000,
+           finish_when_done=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -42,7 +43,7 @@ def sample(env,
             total_reward += r
             total_cost += cost
 
-            if done:
+            if done & finish_when_done:
                 print('Done')
                 break
 
@@ -78,13 +79,12 @@ class RandomController(Controller):
 
 class MPCcontroller(Controller):
     """ Controller built using the MPC method outlined in https://arxiv.org/abs/1708.02596 """
-
     def __init__(self,
                  env,
                  dyn_model,
                  horizon=5,
                  cost_fn=None,
-                 num_simulated_paths=10,
+                 num_simulated_paths=100,
                  ):
         self.env = env
         self.dyn_model = dyn_model

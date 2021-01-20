@@ -10,12 +10,13 @@ from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
 random_data_file = 'random_samples_2021-1-6_11-49'
+model_id = 1
 
 
 def load_model(env, model_checkpoint=99):
     normalization = load_normalization_variables(random_data_file)
 
-    model = keras.models.load_model(filepath=f'../models/iteration_{model_checkpoint}.hdf5')
+    model = keras.models.load_model(filepath=f'../models/model_{model_id}/iteration_{model_checkpoint}.hdf5')
     dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
     return dyn_model
 
@@ -53,13 +54,13 @@ def visualize_paths(num_paths, path_length):
     controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
     env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
-    dyn_model = load_model(env, model_checkpoint=70)
+    dyn_model = load_model(env, model_checkpoint=78)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=200)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100)
     sample(env, mpc_controller, horizon=path_length, num_paths=num_paths)
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000)
-    #calculate_errors()
+    #visualize_paths(num_paths=3, path_length=1000)
+    calculate_errors()

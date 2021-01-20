@@ -14,14 +14,15 @@ def build_and_compile_model(output_size,
                             n_layers=2,
                             size=500,
                             activation=tf.tanh,
-                            output_activation=None
+                            output_activation=None,
+                            learning_rate=0.001
                             ):
     model = keras.Sequential()
     for _ in range(n_layers):
         model.add(layers.Dense(size, activation=activation))
     model.add(layers.Dense(output_size, activation=output_activation))
-
-    model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
     return model
 
 
@@ -38,7 +39,7 @@ class NNDynamicsModel:
     def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
         ob_dim = 14
         ac_dim = 7
-        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
+        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation, learning_rate)
 
         return cls(env, normalization, model, batch_size)
 
@@ -59,6 +60,9 @@ class NNDynamicsModel:
         states_normalized = self.normalize(states)
         actions_normalized = self.normalize(actions)
         deltas_normalized = self.normalize(deltas)
+
+        states_denorm = self.denormalize(states_normalized)
+
 
         # combine state and action to input
         # states_normalized = states_normalized.reset_index(True)

@@ -13,7 +13,7 @@ from controller import MPCcontroller, sample
 random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
-model_id = 1  # is also the number of the rl_samples file
+model_id = 2  # is also the number of the rl_samples file
 
 # if new model = True a new model is created, else set previous_checkpoint to latest finished training iteration to continue training
 new_model = True
@@ -40,6 +40,7 @@ num_simulated_paths = 100
 
 def draw_training_samples():
     states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
+
     states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=model_id)
 
     all_states = states_rl.append(states_rand)
