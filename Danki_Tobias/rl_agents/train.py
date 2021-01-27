@@ -13,29 +13,29 @@ from controller import MPCcontroller, sample
 random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
-model_id = 2  # is also the number of the rl_samples file
+model_id = 1  # is also the number of the rl_samples file
 
 # if new model = True a new model is created, else set previous_checkpoint to latest finished training iteration to continue training
-new_model = False
-previous_checkpoint = 28
+new_model = True
+previous_checkpoint = 0
 
 # training parameters
 iterations = 100
 number_of_random_samples = 100000
-training_epochs = 50
+training_epochs = 10
 new_paths_per_iteration = 10
-length_of_new_paths = 500
+length_of_new_paths = 100
 learning_rate = 1e-3
 batch_size = 512
 
 # model parameter
 number_hidden_layers = 2
-neurons_per_layer = 64
+neurons_per_layer = 32
 activation_function = tf.tanh
 
 # controller parameter
 horizon = 1
-num_simulated_paths = 100
+num_simulated_paths = 50
 
 
 def draw_training_samples():

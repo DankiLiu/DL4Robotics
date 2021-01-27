@@ -57,23 +57,13 @@ class NNDynamicsModel:
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
         """
-        print(states.iloc[0])
-        print(actions.iloc[0])
-        print(deltas.iloc[0])
 
         ### normalize
         states_normalized = self.normalize(states)
         actions_normalized = self.normalize(actions)
         deltas_normalized = self.normalize(deltas)
 
-        # combine state and action to input
-        # states_normalized = states_normalized.reset_index(True)
-        # actions_normalized = actions_normalized.reset_index(True)
-        # deltas_normalized = deltas_normalized.reset_index(True)
         input = states_normalized.join(actions_normalized, how='inner')
-        print(input.iloc[0])
-        print(input.iloc[0].values)
-        exit()
 
         self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 

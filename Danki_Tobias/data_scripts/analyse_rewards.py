@@ -7,7 +7,7 @@ def read_reward_file(number):
     return df
 
 
-rewards = read_reward_file(2)
+rewards = read_reward_file(1)
 rewards['mean_reward'] = rewards.mean(axis=1)
 rewards['mean_reward'].plot()
 plt.show()
