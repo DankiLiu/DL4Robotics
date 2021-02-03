@@ -7,55 +7,18 @@ from tensorflow.keras import losses
 from tensorflow.keras.optimizers import Adam
 
 from Danki_Tobias.column_names import *
+from Danki_Tobias.rl_agents.dynamicsModelBase import *
 
 tf.keras.backend.set_floatx('float64')
 
 
-# function to build a feedforward neural network
-def build_and_compile_model(output_size,
-                            n_layers=2,
-                            size=500,
-                            activation=tf.tanh,
-                            output_activation=None,
-                            learning_rate=0.001
-                            ):
-    model = keras.Sequential()
-    for _ in range(n_layers):
-        model.add(layers.Dense(size, activation=activation))
-
-    model.add(layers.Dense(output_size, activation=output_activation))
-    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
-    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
-    return model
-
-
-class MetaRLDynamicsModel:
+class MetaRLDynamicsModel(BaseDynamicsModel):
     def __init__(self, env, normalization, model, batch_size=512):
-        self.normalization = normalization
-        self.batch_size = batch_size
-
-        self.model = model
+        super().__init__(env, normalization, model, batch_size)
 
         self.model(np.zeros((1, 21)))
         self.meta_model_weights = self.model.get_weights()
-
         self.meta_opt = Adam(lr=0.001)
-
-    @classmethod
-    def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
-        ob_dim = 14
-        ac_dim = 7
-        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation, learning_rate)
-
-        return cls(env, normalization, model, batch_size)
-
-    def normalize(self, data):
-        normalization_values = self.normalization.loc[data.columns]
-        return (data - normalization_values['mean']) / (normalization_values['std'] + 1e-10)
-
-    def denormalize(self, data):
-        normalization_values = self.normalization.loc[data.columns]
-        return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
 
     def fit(self, states, actions, deltas, N_EPOCHS=50, M=32, K=16):
         number_of_trajectories = len(states) / (M + K)
@@ -102,7 +65,6 @@ class MetaRLDynamicsModel:
         self.model.set_weights(self.meta_model_weights)
         self.model.fit(x, y, batch_size=m, verbose=0)
         return
-
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions

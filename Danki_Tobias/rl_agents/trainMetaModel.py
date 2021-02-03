@@ -38,7 +38,7 @@ horizon = 1
 num_simulated_paths = 50
 
 
-def draw_training_samples(number_of_samples=2, trajectory_length=32 + 16):
+def draw_training_samples(trajectory_length=32 + 16):
     """
     draws random trajectories of length M+K
     The first M steps of the trajectory are used for the task specific update step
@@ -56,7 +56,7 @@ def draw_training_samples(number_of_samples=2, trajectory_length=32 + 16):
     all_deltas = state_deltas_rl.append(state_deltas_rand)
     all_deltas = all_deltas.reset_index(drop=True)
 
-    random = np.random.randint(len(all_states) - trajectory_length, size=number_of_samples)
+    random = np.random.randint(len(all_states) - trajectory_length, size=number_of_random_samples)
     func = lambda v: np.arange(start=v, stop=v + trajectory_length)
     random = (np.array([func(v) for v in random])).flatten()
 
