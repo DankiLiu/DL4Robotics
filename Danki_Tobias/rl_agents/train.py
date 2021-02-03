@@ -14,24 +14,28 @@ from Danki_Tobias.helper.get_parameters import *
 random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
-# if new model = True a new model is created, else set model_checkpoint to latest finished training iteration to continue training
-new_model = False
 model_checkpoint = 27
+previous_checkpoint = 0
 
 # Load dynamic model parameters from reach.json
 dyn_n_layers, dyn_layer_size, dyn_batch_size, dyn_n_epochs, dyn_learning_rate = dyn_model_params()
+
 # Load mpc_controller parameters from reach.json
 num_simulated_paths, horizon, _ = MPCcontroller_params()
+
 # Load parameters for collecting on-policy data
 new_paths_per_iteration, length_of_new_paths = on_policy_sampling_params()
+
 # Load parameters for training
-iterations, training_epochs = dyn_model_training_params()
-rl_data_collection = data_collection_num()
+# if new model = True a new model is created, else set model_checkpoint to latest finished training iteration to continue training
+number_of_random_samples, iterations, training_epochs, new_model = dyn_model_training_params()
+model_id = get_model_id()  # is also the number of the rl_samples file
 
 
-def draw_training_samples(number_of_samples=100000):
+def draw_training_samples():
     states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
-    states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=rl_data_collection)
+
+    states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=model_id)
 
     all_states = states_rl.append(states_rand)
     all_states = all_states.reset_index(drop=True)
@@ -40,7 +44,7 @@ def draw_training_samples(number_of_samples=100000):
     all_deltas = state_deltas_rl.append(state_deltas_rand)
     all_deltas = all_deltas.reset_index(drop=True)
 
-    states_sample = all_states.sample(n=number_of_samples, replace=False)
+    states_sample = all_states.sample(n=number_of_random_samples, replace=False)
     actions_sample = all_actions.iloc[states_sample.index]
     delta_sample = all_deltas.iloc[states_sample.index]
     return states_sample, actions_sample, delta_sample
@@ -49,7 +53,7 @@ def draw_training_samples(number_of_samples=100000):
 def save_rewards(rewards):
     average_reward = sum(rewards) / new_paths_per_iteration
     print(f'average_reward{average_reward}')
-    with open(f"../data/reach_env/samples_{rl_data_collection}_rewards.csv", "a+") as file:
+    with open(f"../data/reach_env/samples_{model_id}_rewards.csv", "a+") as file:
         wr = csv.writer(file)
         wr.writerow(rewards)
 
@@ -71,11 +75,13 @@ if __name__ == "__main__":
                                               batch_size=dyn_batch_size,
                                               learning_rate=dyn_learning_rate)
     else:
-        model = keras.models.load_model(filepath=f'../models/iteration_{model_checkpoint}.hdf5')
+        model = keras.models.load_model(
+            filepath=f'../models/model_{model_id}/iteration_{previous_checkpoint}.hdf5')
         dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
 
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=horizon, num_simulated_paths=num_simulated_paths)
+
 
     # sample new training examples
     # retrain the model
@@ -94,6 +100,7 @@ if __name__ == "__main__":
         next_observations = np.concatenate([path["next_observations"] for path in paths])
         observation_delta = next_observations - observations
 
-        store_in_file(observations, actions, observation_delta, collection=rl_data_collection)
-        dyn_model.model.save(filepath=f'../models/iteration_{iteration}.hdf5')
+        store_in_file(observations, actions, observation_delta, collection=model_id)
+        dyn_model.model.save(
+            filepath=f'../models/model_{model_id}/iteration_{iteration + previous_checkpoint + 1}.hdf5')
         print('Model saved')

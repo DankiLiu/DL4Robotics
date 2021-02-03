@@ -17,12 +17,14 @@ def load_random_samples(filename):
 
 
 def load_rl_samples(collection):
-    df = pd.read_csv(f'{folder_path}rl_samples_{collection}.csv', dtype='float64')
-    # df = df.reset_index(drop=True)
+    filename = f'{folder_path}rl_samples_{collection}.csv'
+    df = pd.DataFrame([], columns=state_columns + action_columns + delta_columns)
+    if os.path.isfile(filename):
+        df = pd.read_csv(filename, dtype='float64')
     states = df[state_columns]
     actions = df[action_columns]
     state_deltas = df[delta_columns]
-    return states, actions, state_deltas
+    return [states, actions, state_deltas]
 
 
 def load_normalization_variables(filename):

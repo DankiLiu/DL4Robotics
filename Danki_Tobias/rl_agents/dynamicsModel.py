@@ -16,14 +16,16 @@ def build_and_compile_model(output_size,
                             n_layers=n_layers,
                             size=layer_size,
                             activation=tf.tanh,
-                            output_activation=None
+                            output_activation=None,
+                            learning_rate=0.001
                             ):
     model = keras.Sequential()
     for _ in range(n_layers):
         model.add(layers.Dense(size, activation=activation))
-    model.add(layers.Dense(output_size, activation=output_activation))
 
-    model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
+    model.add(layers.Dense(output_size, activation=output_activation))
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
     return model
 
 
@@ -40,7 +42,7 @@ class NNDynamicsModel:
     def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
         ob_dim = 14
         ac_dim = 7
-        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
+        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation, learning_rate)
 
         return cls(env, normalization, model, batch_size)
 
@@ -57,15 +59,12 @@ class NNDynamicsModel:
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
         """
+
         ### normalize
         states_normalized = self.normalize(states)
         actions_normalized = self.normalize(actions)
         deltas_normalized = self.normalize(deltas)
 
-        # combine state and action to input
-        # states_normalized = states_normalized.reset_index(True)
-        # actions_normalized = actions_normalized.reset_index(True)
-        # deltas_normalized = deltas_normalized.reset_index(True)
         input = states_normalized.join(actions_normalized, how='inner')
 
         self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
@@ -80,9 +79,9 @@ class NNDynamicsModel:
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        predictions = pd.DataFrame(self.model.predict(input), columns=state_columns)
+        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
         predictions = self.denormalize(predictions)
+        predictions.columns = state_columns
 
         states.reset_index(drop=True, inplace=True)
-
         return predictions + states

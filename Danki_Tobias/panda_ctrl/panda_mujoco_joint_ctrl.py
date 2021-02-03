@@ -18,6 +18,8 @@ class PandaJointControl(PandaBase):
     def apply_action(self, action):
         assert len(action) == self.action_dimension, ("Error, wrong action dimension. Expected: " +
                                                       str(self.action_dimension) + ". Got:" + str(len(action)))
+        action = action * self.crippled
+
         gripper_ctrl = action[7]
         joint_action = action[:7]
         self.sim.data.ctrl[:] = np.concatenate(([gripper_ctrl, gripper_ctrl], joint_action))
@@ -84,6 +86,8 @@ class PandaJointVelControlCrippled(PandaJointControl):
         # upper and lower bound for each joint velocity
         low = [-87, -87, -87, -87, -12, -12, -12, -1]
         high = [87, 87, 87, 87, 12, 12, 12, 1]
+        # low = [-100, -100, -100, -100, -100, -100, -100, -1]
+        # high = [100, 100, 100, 100, 100, 100, 100, 1]
 
         low = low * self.crippled
         high = high * self.crippled

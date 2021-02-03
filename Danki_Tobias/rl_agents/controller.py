@@ -12,7 +12,8 @@ num_paths, on_policy_horizon = on_policy_sampling_params()
 def sample(env,
            controller,
            num_paths=num_paths,
-           horizon=on_policy_horizon):
+           horizon=on_policy_horizon,
+           finish_when_done=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -34,8 +35,8 @@ def sample(env,
             if j % 100 == 0:
                 print(j)
             act, cost = controller.get_action(states[j], env.sim.get_state())
-            actions.append(act)
 
+            actions.append(act)
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
             # extract relevant state information
@@ -45,7 +46,7 @@ def sample(env,
             total_reward += r
             total_cost += cost
 
-            if done:
+            if done & finish_when_done:
                 print('Done')
                 break
 
@@ -87,7 +88,7 @@ class MPCcontroller(Controller):
                  dyn_model,
                  horizon=horizon,
                  cost_fn=None,
-                 num_simulated_paths=num_simulated_paths,
+                 num_simulated_paths=num_simulated_paths
                  ):
         self.env = env
         self.dyn_model = dyn_model
