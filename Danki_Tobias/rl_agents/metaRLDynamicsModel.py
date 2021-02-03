@@ -33,8 +33,6 @@ class MetaRLDynamicsModel:
     def __init__(self, env, normalization, model, batch_size=512):
         self.normalization = normalization
         self.batch_size = batch_size
-        # ob_dim = env.observation_dim.shape[0]  # local variables of init just for convinience
-        # ac_dim = env.action_space.shape[0]
 
         self.model = model
 
@@ -93,6 +91,7 @@ class MetaRLDynamicsModel:
                 total_loss = tf.math.divide(total_loss, number_of_trajectories)
             # Use the gradient tape to automatically retrieve
             # the gradients of the trainable variables with respect to the loss.
+            self.model.set_weights(self.meta_model_weights)
             grads = tape.gradient(total_loss, self.model.trainable_weights)
             self.meta_opt.apply_gradients(zip(grads, self.model.trainable_variables))
             self.meta_model_weights = self.model.get_weights()
@@ -104,8 +103,6 @@ class MetaRLDynamicsModel:
         self.model.fit(x, y, batch_size=m, verbose=0)
         return
 
-    def meta_update(self):
-        return
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
