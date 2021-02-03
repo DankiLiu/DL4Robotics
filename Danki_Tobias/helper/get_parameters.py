@@ -62,17 +62,19 @@ def metaRL_dyn_model_params():
     except:
         logging.info("Load on metaRL dynamic model parameters error.")
 
-def data_collection_num():
+def get_model_id():
     try:
-        rl_data_collection = data["data_collection_num"]["rl_data_collection"]
+        rl_data_collection = data["model_id"]["rl_data_collection"]
         return rl_data_collection
     except:
         logging.info("Load RL collection number failed")
 
 def dyn_model_training_params():
     try:
+        number_of_random_samples = ["dyn_model_training"]["number_of_random_samples"]
         iterations = data["dyn_model_training"]["iterations"]
         training_epochs = data["dyn_model_training"]["training_epochs"]
-        return iterations, training_epochs
+        new_model = data["dyn_model_training"]["new_model"]
+        return number_of_random_samples, iterations, training_epochs, new_model
     except:
         logging.info("Load RL collection number failed")

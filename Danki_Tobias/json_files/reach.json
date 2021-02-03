@@ -40,11 +40,13 @@
   },
 
   "dyn_model_training": {
+    "number_of_random_samples": 100000,
     "iterations": 100,
-    "training_epochs": 50
+    "training_epochs": 50,
+    "new_model": false
   },
 
-  "data_collection_num":{
+  "model_id":{
     "rl_data_collection": 1
   }
 
