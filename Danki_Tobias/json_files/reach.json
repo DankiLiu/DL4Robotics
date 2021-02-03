@@ -6,11 +6,21 @@
   },
 
   "dyn_model": {
-
+    "n_layers": 2,
+    "size": 500,
+    "batch_size": 512,
+    "n_epochs": 50,
+    "learning_rate": 1e-3
   },
 
-  "controller": {
-    "horizon": 5,
+  "on_policy_sampling": {
+    "num_paths": 10,
+    "on_policy_horizon": 500
+  },
+
+  "MPCcontroller": {
+    "num_simulated_paths": 100,
+    "horizon": 1,
     "num_control_samples": 15000
   },
 
@@ -18,6 +28,24 @@
     "steps_per_episode": 1000,
     "steps_per_rollout_train": 1000,
     "steps_per_rollout_val": 200
+  },
+
+  "metaRL_dyn_model": {
+    "n_layers": 2,
+    "size": 500,
+    "batch_size": 512,
+    "n_epochs": 50,
+    "M": 32,
+    "K": 16
+  },
+
+  "dyn_model_training": {
+    "iterations": 100,
+    "training_epochs": 50
+  },
+
+  "data_collection_num":{
+    "rl_data_collection": 1
   }
 
 }

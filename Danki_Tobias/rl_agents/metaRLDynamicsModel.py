@@ -7,14 +7,16 @@ from tensorflow.keras import losses
 from tensorflow.keras.optimizers import Adam
 
 from Danki_Tobias.column_names import *
+from Danki_Tobias.helper.get_parameters import *
 
 tf.keras.backend.set_floatx('float64')
 
+n_layers, layer_size, batch_size, n_epochs, M, K = metaRL_dyn_model_params()
 
 # function to build a feedforward neural network
 def build_and_compile_model(output_size,
-                            n_layers=2,
-                            size=500,
+                            n_layers=n_layers,
+                            size=layer_size,
                             activation=tf.tanh,
                             output_activation=None
                             ):
@@ -28,7 +30,7 @@ def build_and_compile_model(output_size,
 
 
 class MetaRLDynamicsModel:
-    def __init__(self, env, normalization, model, batch_size=512):
+    def __init__(self, env, normalization, model, batch_size=batch_size):
         self.normalization = normalization
         self.batch_size = batch_size
         # ob_dim = env.observation_dim.shape[0]  # local variables of init just for convinience
@@ -57,7 +59,7 @@ class MetaRLDynamicsModel:
         normalization_values = self.normalization.loc[data.columns]
         return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
 
-    def fit(self, states, actions, deltas, N_EPOCHS=50, M=32, K=16):
+    def fit(self, states, actions, deltas, N_EPOCHS=n_epochs, M=M, K=K):
         number_of_trajectories = len(states) / (M + K)
         assert number_of_trajectories.is_integer()
         number_of_trajectories = int(number_of_trajectories)

@@ -2,14 +2,17 @@ import numpy as np
 import pandas as pd
 
 from Danki_Tobias.column_names import *
-# from cost_functions import trajectory_cost_fn
-import time
+from Danki_Tobias.helper.get_parameters import *
 
+# Load parameters for MPC controller
+num_simulated_paths, horizon, num_control_samples = MPCcontroller_params()
+# Load parameters for on policy data collection
+num_paths, on_policy_horizon = on_policy_sampling_params()
 
 def sample(env,
            controller,
-           num_paths=10,
-           horizon=1000):
+           num_paths=num_paths,
+           horizon=on_policy_horizon):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -82,9 +85,9 @@ class MPCcontroller(Controller):
     def __init__(self,
                  env,
                  dyn_model,
-                 horizon=5,
+                 horizon=horizon,
                  cost_fn=None,
-                 num_simulated_paths=10,
+                 num_simulated_paths=num_simulated_paths,
                  ):
         self.env = env
         self.dyn_model = dyn_model
@@ -99,7 +102,7 @@ class MPCcontroller(Controller):
         for index, position in enumerate(position_state):
             simulation_state = self.env.sim.get_state()
             simulation_state.qpos[:position.shape[0]] = position
-            self.env.sim.set_state(simulation_state)
+            self.env.sim.setstate(simulation_state)
             self.env.sim.forward()
             # get the reward for this state
             costs[index] = -self.env._reward

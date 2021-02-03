@@ -9,21 +9,24 @@ from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
+from Danki_Tobias.helper.get_parameters import *
 
 random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
-iterations = 100
-training_epochs = 50
-
-new_paths_per_iteration = 10
-length_of_new_paths = 500
-
-rl_data_collection = 1
-
 # if new model = True a new model is created, else set model_checkpoint to latest finished training iteration to continue training
 new_model = False
 model_checkpoint = 27
+
+# Load dynamic model parameters from reach.json
+dyn_n_layers, dyn_layer_size, dyn_batch_size, dyn_n_epochs, dyn_learning_rate = dyn_model_params()
+# Load mpc_controller parameters from reach.json
+num_simulated_paths, horizon, _ = MPCcontroller_params()
+# Load parameters for collecting on-policy data
+new_paths_per_iteration, length_of_new_paths = on_policy_sampling_params()
+# Load parameters for training
+iterations, training_epochs = dyn_model_training_params()
+rl_data_collection = data_collection_num()
 
 
 def draw_training_samples(number_of_samples=100000):
@@ -60,19 +63,19 @@ if __name__ == "__main__":
 
     if new_model:
         dyn_model = NNDynamicsModel.new_model(env=env,
-                                              n_layers=2,
-                                              size=64,
+                                              n_layers=dyn_n_layers,
+                                              size=dyn_layer_size,
                                               activation=tf.tanh,
                                               output_activation=None,
                                               normalization=normalization,
-                                              batch_size=512,
-                                              learning_rate=1e-3)
+                                              batch_size=dyn_batch_size,
+                                              learning_rate=dyn_learning_rate)
     else:
         model = keras.models.load_model(filepath=f'../models/iteration_{model_checkpoint}.hdf5')
         dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=horizon, num_simulated_paths=num_simulated_paths)
 
     # sample new training examples
     # retrain the model

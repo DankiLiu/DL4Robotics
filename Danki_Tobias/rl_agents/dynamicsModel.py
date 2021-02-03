@@ -5,14 +5,16 @@ import numpy as np
 import pandas as pd
 
 from Danki_Tobias.column_names import *
+from Danki_Tobias.helper.get_parameters import *
 
 tf.keras.backend.set_floatx('float64')
 
+n_layers, layer_size, batch_size, n_epochs = dyn_model_params()
 
 # function to build a feedforward neural network
 def build_and_compile_model(output_size,
-                            n_layers=2,
-                            size=500,
+                            n_layers=n_layers,
+                            size=layer_size,
                             activation=tf.tanh,
                             output_activation=None
                             ):
@@ -26,7 +28,7 @@ def build_and_compile_model(output_size,
 
 
 class NNDynamicsModel:
-    def __init__(self, env, normalization, model, batch_size=512):
+    def __init__(self, env, normalization, model, batch_size=batch_size):
         self.normalization = normalization
         self.batch_size = batch_size
         # ob_dim = env.observation_dim.shape[0]  # local variables of init just for convinience
@@ -50,7 +52,7 @@ class NNDynamicsModel:
         normalization_values = self.normalization.loc[data.columns]
         return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
 
-    def fit(self, states, actions, deltas, N_EPOCHS=50):
+    def fit(self, states, actions, deltas, N_EPOCHS=n_epochs):
         """
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
