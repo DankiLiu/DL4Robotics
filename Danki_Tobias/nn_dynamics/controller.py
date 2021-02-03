@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from Danki_Tobias.column_names import *
-
+from Danki_Tobias.nn_dynamics.cost_function import trajectory_cost
 
 class Controller():
     def __init__(self):
@@ -41,14 +41,18 @@ class MPCcontroller(Controller):
 
     def get_action(self, state):
         """ Note: be careful to batch your simulations through the model for speed """
-        # sampled_acts = np.array([[self.env.action_space.sample() for j in range(self.num_simulated_paths)] for i in range(self.horizon)])
+        # Random sampling shooting -> K (num_simulated_paths) action sequences with each has length H (horizon).
         sampled_acts = np.array(
             [[self.env.action_space.sample() for j in range(self.num_simulated_paths)] for i in range(self.horizon)])
-        # sampled_acts=np.random.randint(,size=[self.horizon,self.num_simulated_paths])
+
+        # Use trained model to predict states for each sequence.
         states = [np.array([state] * self.num_simulated_paths)]
         nstates = []
         for i in range(self.horizon):
             nstates.append(self.dyn_model.predict(states[-1], sampled_acts[i, :]))
-            if i < self.horizon: states.append(nstates[-1])
-        costs = trajectory_cost_fn(self.cost_fn, states, sampled_acts, nstates)
+            if i < self.horizon:
+                states.append(nstates[-1])
+
+        # Calculate cost for sequences (paths).
+        costs = trajectory_cost(self.cost_fn, states, sampled_acts, nstates)
         return sampled_acts[0][np.argmin(costs)], min(costs)
