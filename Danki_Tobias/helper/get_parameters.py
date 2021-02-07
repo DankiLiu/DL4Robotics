@@ -1,9 +1,14 @@
 import json
 import logging
-#get parameters from json file
+import pathlib
+# get parameters from json file
 
-with open("json_files/reach.json") as jf:
+current_path = pathlib.Path().absolute()
+reach_json_path = str(current_path.parent) + "/json_files/reach.json"
+
+with open(reach_json_path) as jf:
     data = json.load(jf)
+
 
 def data_collection_params():
     try:
@@ -15,6 +20,7 @@ def data_collection_params():
         return num_rollouts_train, num_rollouts_val, steps_per_rollout_train, steps_per_rollout_val
     except:
         logging.info("Load data collection parameters error.")
+
 
 def MPCcontroller_params():
     try:
