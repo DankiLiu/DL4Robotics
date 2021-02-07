@@ -46,7 +46,7 @@ def sample(env,
             total_reward += r
             total_cost += cost
 
-            if done & finish_when_done:
+            if done and finish_when_done:
                 print('Done')
                 break
 

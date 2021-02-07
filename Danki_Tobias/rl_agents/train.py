@@ -14,7 +14,25 @@ from Danki_Tobias.helper.get_parameters import *
 random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
-model_checkpoint = 27
+
+# model_checkpoint = 27
+# previous_checkpoint = 0
+#
+# model_id = 10  # is also the number of the rl_samples file
+#
+# # if new model = True a new model is created, else set previous_checkpoint to latest finished training iteration to continue training
+# new_model = True
+# previous_checkpoint = 0
+#
+# # training parameters
+# iterations = 1
+# number_of_random_samples = 100000
+# training_epochs = 10
+# new_paths_per_iteration = 1
+# length_of_new_paths = 100
+# learning_rate = 1e-3
+# batch_size = 512
+
 previous_checkpoint = 0
 
 # Load dynamic model parameters from reach.json

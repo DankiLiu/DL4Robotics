@@ -8,6 +8,7 @@ from tensorflow.keras.optimizers import Adam
 
 from Danki_Tobias.column_names import *
 from Danki_Tobias.helper.get_parameters import *
+from Danki_Tobias.rl_agents.dynamicsModelBase import *
 
 tf.keras.backend.set_floatx('float64')
 
@@ -28,7 +29,7 @@ def build_and_compile_model(output_size,
     model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
     return model
 
-
+"""
 class MetaRLDynamicsModel:
     def __init__(self, env, normalization, model, batch_size=batch_size):
         self.normalization = normalization
@@ -37,11 +38,17 @@ class MetaRLDynamicsModel:
         # ac_dim = env.action_space.shape[0]
 
         self.model = model
+"""
+
+class MetaRLDynamicsModel(BaseDynamicsModel):
+    def __init__(self, env, normalization, model, batch_size=512):
+        super().__init__(env, normalization, model, batch_size)
+
 
         self.model(np.zeros((1, 21)))
         self.meta_model_weights = self.model.get_weights()
-
         self.meta_opt = Adam(lr=0.001)
+
 
     @classmethod
     def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
@@ -69,52 +76,34 @@ class MetaRLDynamicsModel:
         actions_normalized = self.normalize(actions)
         deltas_normalized = self.normalize(deltas)
 
-        # combine state and action to input
-        # states_normalized = states_normalized.reset_index(True)
-        # actions_normalized = actions_normalized.reset_index(True)
-        # deltas_normalized = deltas_normalized.reset_index(True)
         input = states_normalized.join(actions_normalized, how='inner')
 
         for epoch in range(N_EPOCHS):
-
-            t_loss = []
-            for trajectory in range(number_of_trajectories):
-                index_of_first_elem = trajectory * (M + K)
-                # indices of current trajectory for task specific update
-                m_index = np.arange(index_of_first_elem, index_of_first_elem + M)
-                # indices of current trajectory for task specific evaluation
-                k_index = np.arange(index_of_first_elem + M, index_of_first_elem + (M + K))
-
-                # adapt meta model with a single trajectory
-                self.adapt(input.iloc[m_index], deltas_normalized.iloc[m_index], M)
-
-                # calculate Loss of adapted model
-                prediction = self.model.predict(input.iloc[k_index])
-                prediction = np.swapaxes(prediction, 0, 1)
-                label = np.swapaxes(deltas_normalized.iloc[k_index].values, 0, 1)
-                loss = losses.mean_squared_error(label, prediction)
-                t_loss.append(loss)
-
-            # reset model to meta model
-            self.model.set_weights(self.meta_model_weights)
-            # sum the loss and divide by number_of_trajectories
-
-            t_loss = tf.math.add_n(t_loss)
-            t_loss = tf.math.divide(t_loss, number_of_trajectories)
-
-            # TODO: I don't know how to calculate the gradient ???
             with tf.GradientTape() as tape:
-                tape.watch(t_loss)
+                total_loss = []
+                for trajectory in range(number_of_trajectories):
+                    index_of_first_elem = trajectory * (M + K)
+                    # indices of current trajectory for task specific update
+                    m_index = np.arange(index_of_first_elem, index_of_first_elem + M)
+                    # indices of current trajectory for task specific evaluation
+                    k_index = np.arange(index_of_first_elem + M, index_of_first_elem + (M + K))
 
-            grads = tape.gradient(t_loss, self.model.trainable_variables)
+                    # adapt meta model with a single trajectory
+                    self.adapt(input.iloc[m_index], deltas_normalized.iloc[m_index], M)
+                    # calculate Loss of adapted model
+                    prediction = self.model(input.iloc[k_index].values)
+                    label = deltas_normalized.iloc[k_index].values
+                    loss = losses.mean_squared_error(label, prediction)
+                    total_loss.append(loss)
+
+                total_loss = tf.math.add_n(total_loss)
+                total_loss = tf.math.divide(total_loss, number_of_trajectories)
+            # Use the gradient tape to automatically retrieve
+            # the gradients of the trainable variables with respect to the loss.
+            self.model.set_weights(self.meta_model_weights)
+            grads = tape.gradient(total_loss, self.model.trainable_weights)
             self.meta_opt.apply_gradients(zip(grads, self.model.trainable_variables))
-
-            exit()
-
-        print(input)
-        exit()
-
-        self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
+            self.meta_model_weights = self.model.get_weights()
 
     # task specific update step
     def adapt(self, x, y, m):
@@ -123,12 +112,9 @@ class MetaRLDynamicsModel:
         self.model.fit(x, y, batch_size=m, verbose=0)
         return
 
-    def meta_update(self):
-        return
-
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions
-                and return the (unnormalized) next states as predicted by using the model """
+        and return the (unnormalized) next states as predicted by using the model """
         ### normalize
         states_normalized = self.normalize(states)
         actions_normalized = self.normalize(actions)
@@ -136,9 +122,9 @@ class MetaRLDynamicsModel:
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        predictions = pd.DataFrame(self.model.predict(input), columns=state_columns)
+        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
         predictions = self.denormalize(predictions)
+        predictions.columns = state_columns
 
         states.reset_index(drop=True, inplace=True)
-
         return predictions + states

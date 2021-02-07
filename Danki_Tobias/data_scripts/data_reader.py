@@ -16,11 +16,14 @@ def load_random_samples(filename):
     return states, actions, state_deltas
 
 
-def load_rl_samples(collection):
-    filename = f'{folder_path}rl_samples_{collection}.csv'
+def load_rl_samples(collection, meta=False):
+    if meta:
+        file_name = f'{folder_path}rl_samples_{collection}_meta.csv'
+    else:
+        file_name = f'{folder_path}rl_samples_{collection}.csv'
     df = pd.DataFrame([], columns=state_columns + action_columns + delta_columns)
-    if os.path.isfile(filename):
-        df = pd.read_csv(filename, dtype='float64')
+    if os.path.isfile(file_name):
+        df = pd.read_csv(file_name, dtype='float64')
     states = df[state_columns]
     actions = df[action_columns]
     state_deltas = df[delta_columns]
@@ -49,8 +52,11 @@ def save_normalization_variables(filename='random_samples_2020-12-16_21-18'):
     normalization_variables.to_csv(f'{folder_path}normalization_variables/{filename}.csv')
 
 
-def store_in_file(observations, actions, deltas, collection):
-    file_name = f'{folder_path}rl_samples_{collection}.csv'
+def store_in_file(observations, actions, deltas, collection, meta=False):
+    if meta:
+        file_name = f'{folder_path}rl_samples_{collection}_meta.csv'
+    else:
+        file_name = f'{folder_path}rl_samples_{collection}.csv'
     print(f"Storing data in: {file_name}")
 
     data = np.concatenate((observations, actions, deltas), axis=1)

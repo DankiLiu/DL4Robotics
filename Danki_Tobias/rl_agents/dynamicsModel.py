@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 
 from Danki_Tobias.column_names import *
+
 from Danki_Tobias.helper.get_parameters import *
+from Danki_Tobias.rl_agents.dynamicsModelBase import *
 
 tf.keras.backend.set_floatx('float64')
 
@@ -28,7 +30,7 @@ def build_and_compile_model(output_size,
     model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
     return model
 
-
+"""
 class NNDynamicsModel:
     def __init__(self, env, normalization, model, batch_size=batch_size):
         self.normalization = normalization
@@ -53,6 +55,12 @@ class NNDynamicsModel:
     def denormalize(self, data):
         normalization_values = self.normalization.loc[data.columns]
         return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
+"""
+
+class NNDynamicsModel(BaseDynamicsModel):
+    def __init__(self, env, normalization, model, batch_size=512):
+        super().__init__(env, normalization, model, batch_size)
+
 
     def fit(self, states, actions, deltas, N_EPOCHS=n_epochs):
         """

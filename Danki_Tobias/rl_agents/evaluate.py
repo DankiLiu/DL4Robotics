@@ -10,7 +10,7 @@ from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
 random_data_file = 'random_samples_2021-1-6_11-49'
-model_id = 2
+model_id = 1
 
 
 def load_model(env, model_checkpoint=99):
@@ -52,8 +52,8 @@ def calculate_errors():
 
 def visualize_paths(num_paths, path_length, model_checkpoint):
     # TODO: do we need to cripple both environments or keep the controller_env unchanged
-    controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
-    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([0.2, 0.2, 1, 1, 1, 1, 1, 1]))
+    controller_env = ReachEnvJointVelCtrl(render=False,)
+    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 0.7, 1, 1, 1, 1, 1, 1]))
 
     dyn_model = load_model(env, model_checkpoint=model_checkpoint)
 
@@ -63,5 +63,5 @@ def visualize_paths(num_paths, path_length, model_checkpoint):
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=47)
+    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=36)
     #calculate_errors()
