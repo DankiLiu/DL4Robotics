@@ -2,34 +2,36 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import os
+import pathlib
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
-from Danki_Tobias.helper.get_parameters import data_collection_params
 
-folder_path = '../data/reach_env/'
+# default path to store data
+current_path = pathlib.Path().absolute()
+reach_env_path = str(current_path.parent) + '/data/reach_env/'
 
 dateTimeObj = dt.datetime.now()
 
 timestamp = str(dateTimeObj.year) + '-' + str(dateTimeObj.month) + '-' + str(dateTimeObj.day) + '_' + \
             str(dateTimeObj.hour) + '-' + str(dateTimeObj.minute)
-'''
-Generate #steps_per_rollout samples for every rollout.
-'''
 
 
 class CollectRandomData():
     def __init__(self,
-                 env,
                  num_rollouts_train,
                  num_rollouts_val,
                  steps_per_rollout_train,
                  steps_per_rollout_val,
-                 dataset_name):
+                 dataset_name,
+                 env=ReachEnvJointVelCtrl(render=False, nsubsteps=10), # non_crippled by default
+                 path=reach_env_path
+                 ):
         self.env = env
         self.num_rollouts_train = num_rollouts_train
         self.num_rollouts_val = num_rollouts_val
         self.steps_per_rollout_train = steps_per_rollout_train
         self.steps_per_rollout_val = steps_per_rollout_val
         self.dataset_name = dataset_name
+        self.path = path
 
     def random_rollout(self, steps_per_rollout):
         state_positions = []
@@ -97,21 +99,24 @@ class CollectRandomData():
 
     def store_in_file(self, rollout_df: pd.DataFrame, is_val):
         print("Storing data ... ")
+        # If path doesn't exist, create one
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
-        def store(file_name, rollout_df=rollout_df):
-            if os.path.isfile(file_name):
-                rollout_df.to_csv(file_name, mode='a', header=False, index=False)
+        def store(name, rollout_df=rollout_df):
+            if os.path.isfile(name):
+                rollout_df.to_csv(name, mode='a', header=False, index=False)
             else:
-                rollout_df.to_csv(file_name, index=False)
+                rollout_df.to_csv(name, index=False)
 
         if is_val:
-            file_name = folder_path + self.dataset_name + '_val_' + str(timestamp) + '.csv'
-            print("in data path ", file_name)
-            store(file_name, rollout_df)
+            file_path = self.path + '/' + self.dataset_name + '_val_' + str(timestamp) + '.csv'
+            print("in data path ", file_path)
+            store(file_path, rollout_df)
         else:
-            file_name = folder_path + self.dataset_name + '_train_' + str(timestamp) + '.csv'
-            print("in data path ", file_name)
-            store(file_name, rollout_df)
+            file_path = self.path + '/' + self.dataset_name + '_train_' + str(timestamp) + '.csv'
+            print("in data path ", file_path)
+            store(file_path, rollout_df)
 
     def perform_data_collection(self):
         # Collect training data
@@ -121,5 +126,7 @@ class CollectRandomData():
 
         # Collect validation data
         print("Start collecting validation dataset ... ")
-        self.collect_random_samples(number_rollouts=self.num_rollouts_val, steps_per_rollout=self.steps_per_rollout_val,
-                                    is_val=True)
+        if self.num_rollouts_val:
+            self.collect_random_samples(number_rollouts=self.num_rollouts_val,
+                                        steps_per_rollout=self.steps_per_rollout_val,
+                                        is_val=True)
