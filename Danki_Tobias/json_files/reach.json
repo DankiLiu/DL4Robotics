@@ -7,7 +7,7 @@
 
   "dyn_model": {
     "n_layers": 2,
-    "size": 500,
+    "layer_size": 500,
     "batch_size": 512,
     "n_epochs": 50,
     "learning_rate": 1e-3
@@ -32,7 +32,7 @@
 
   "metaRL_dyn_model": {
     "n_layers": 2,
-    "size": 500,
+    "layer_size": 500,
     "batch_size": 512,
     "n_epochs": 50,
     "M": 32,

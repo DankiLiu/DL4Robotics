@@ -49,6 +49,30 @@ new_paths_per_iteration, length_of_new_paths = on_policy_sampling_params()
 number_of_random_samples, iterations, training_epochs, new_model = dyn_model_training_params()
 model_id = get_model_id()  # is also the number of the rl_samples file
 
+model_id = 1  # is also the number of the rl_samples file
+
+# if new model = True a new model is created, else set previous_checkpoint to latest finished training iteration to continue training
+new_model = True
+previous_checkpoint = 0
+
+# training parameters
+iterations = 50
+number_of_random_samples = 4800
+training_epochs = 10
+new_paths_per_iteration = 10
+length_of_new_paths = 100
+learning_rate = 1e-3
+batch_size = 512
+
+# model parameter
+number_hidden_layers = 2
+neurons_per_layer = 32
+activation_function = tf.tanh
+
+# controller parameter
+horizon = 1
+num_simulated_paths = 50
+
 
 def draw_training_samples():
     states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
@@ -109,13 +133,15 @@ if __name__ == "__main__":
 
         # Generate new trajectories with the MPC controllers
         paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                       num_paths=new_paths_per_iteration)
+                                       num_paths=new_paths_per_iteration, finish_when_done=True)
 
         save_rewards(rewards)
 
         observations = np.concatenate([path["observations"] for path in paths])
         actions = np.concatenate([path["actions"] for path in paths])
         next_observations = np.concatenate([path["next_observations"] for path in paths])
+        print(len(next_observations))
+        print(len(observations))
         observation_delta = next_observations - observations
 
         store_in_file(observations, actions, observation_delta, collection=model_id)

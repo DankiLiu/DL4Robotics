@@ -14,57 +14,14 @@ tf.keras.backend.set_floatx('float64')
 
 n_layers, layer_size, batch_size, n_epochs, M, K = metaRL_dyn_model_params()
 
-# function to build a feedforward neural network
-def build_and_compile_model(output_size,
-                            n_layers=n_layers,
-                            size=layer_size,
-                            activation=tf.tanh,
-                            output_activation=None
-                            ):
-    model = keras.Sequential()
-    for _ in range(n_layers):
-        model.add(layers.Dense(size, activation=activation))
-    model.add(layers.Dense(output_size, activation=output_activation))
-
-    model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
-    return model
-
-"""
-class MetaRLDynamicsModel:
-    def __init__(self, env, normalization, model, batch_size=batch_size):
-        self.normalization = normalization
-        self.batch_size = batch_size
-        # ob_dim = env.observation_dim.shape[0]  # local variables of init just for convinience
-        # ac_dim = env.action_space.shape[0]
-
-        self.model = model
-"""
 
 class MetaRLDynamicsModel(BaseDynamicsModel):
     def __init__(self, env, normalization, model, batch_size=512):
         super().__init__(env, normalization, model, batch_size)
 
-
         self.model(np.zeros((1, 21)))
         self.meta_model_weights = self.model.get_weights()
         self.meta_opt = Adam(lr=0.001)
-
-
-    @classmethod
-    def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
-        ob_dim = 14
-        ac_dim = 7
-        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation)
-
-        return cls(env, normalization, model, batch_size)
-
-    def normalize(self, data):
-        normalization_values = self.normalization.loc[data.columns]
-        return (data - normalization_values['mean']) / (normalization_values['std'] + 1e-10)
-
-    def denormalize(self, data):
-        normalization_values = self.normalization.loc[data.columns]
-        return data * (normalization_values['std'] + 1e-10) + normalization_values['mean']
 
     def fit(self, states, actions, deltas, N_EPOCHS=n_epochs, M=M, K=K):
         number_of_trajectories = len(states) / (M + K)
@@ -102,6 +59,7 @@ class MetaRLDynamicsModel(BaseDynamicsModel):
             # the gradients of the trainable variables with respect to the loss.
             self.model.set_weights(self.meta_model_weights)
             grads = tape.gradient(total_loss, self.model.trainable_weights)
+
             self.meta_opt.apply_gradients(zip(grads, self.model.trainable_variables))
             self.meta_model_weights = self.model.get_weights()
 
@@ -111,6 +69,14 @@ class MetaRLDynamicsModel(BaseDynamicsModel):
         self.model.set_weights(self.meta_model_weights)
         self.model.fit(x, y, batch_size=m, verbose=0)
         return
+
+    def normalize_and_adapt(self, states, actions, deltas):
+        ### normalize
+        states_normalized = self.normalize(pd.DataFrame(states, columns=state_columns))
+        actions_normalized = self.normalize(pd.DataFrame(actions, columns=action_columns))
+        deltas_normalized = self.normalize(pd.DataFrame(deltas, columns=delta_columns))
+        input = states_normalized.join(actions_normalized, how='inner')
+        self.model.fit(input, deltas_normalized, batch_size=1, verbose=0)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions

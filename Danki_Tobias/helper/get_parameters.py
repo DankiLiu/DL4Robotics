@@ -77,7 +77,7 @@ def get_model_id():
 
 def dyn_model_training_params():
     try:
-        number_of_random_samples = ["dyn_model_training"]["number_of_random_samples"]
+        number_of_random_samples = data["dyn_model_training"]["number_of_random_samples"]
         iterations = data["dyn_model_training"]["iterations"]
         training_epochs = data["dyn_model_training"]["training_epochs"]
         new_model = data["dyn_model_training"]["new_model"]

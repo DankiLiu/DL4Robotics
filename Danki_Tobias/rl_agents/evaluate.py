@@ -7,17 +7,21 @@ import os
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
 from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
+from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
 random_data_file = 'random_samples_2021-1-6_11-49'
 model_id = 1
 
 
-def load_model(env, model_checkpoint=99):
+def load_model(env, model_checkpoint=99, meta=False):
     normalization = load_normalization_variables(random_data_file)
-
-    model = keras.models.load_model(filepath=f'../models/model_{model_id}/iteration_{model_checkpoint}.hdf5')
-    dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
+    if meta:
+        model = keras.models.load_model(filepath=f'../meta_models/model_{model_id}/iteration_{model_checkpoint}.hdf5')
+        dyn_model = MetaRLDynamicsModel(env=env, normalization=normalization, model=model)
+    else:
+        model = keras.models.load_model(filepath=f'../models/model_{model_id}/iteration_{model_checkpoint}.hdf5')
+        dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
     return dyn_model
 
 
@@ -25,7 +29,7 @@ def calculate_errors():
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
     random_data_file = 'random_samples_2020-12-16_21-18'  # small datafile for testing purpose
-    #random_data_file = 'random_samples_2021-1-6_11-49'  # big file
+    # random_data_file = 'random_samples_2021-1-6_11-49'  # big file
     states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
 
     state_deltas_rand.columns = state_columns
@@ -50,18 +54,17 @@ def calculate_errors():
         print(f'Mean squared Error: {mean_squared_error}')
 
 
-def visualize_paths(num_paths, path_length, model_checkpoint):
+def visualize_paths(num_paths, path_length, model_checkpoint, meta=False):
     # TODO: do we need to cripple both environments or keep the controller_env unchanged
-    controller_env = ReachEnvJointVelCtrl(render=False,)
-    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 0.7, 1, 1, 1, 1, 1, 1]))
-
-    dyn_model = load_model(env, model_checkpoint=model_checkpoint)
+    controller_env = ReachEnvJointVelCtrl(render=False, )
+    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, -0.5, 0, 1, 1, 1, 0.2, 1]))
+    dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
 
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
-    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True)
+    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, meta=meta)
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=36)
-    #calculate_errors()
+    visualize_paths(num_paths=100, path_length=1000, model_checkpoint=50, meta=False)
+    # calculate_errors()

@@ -1,6 +1,6 @@
 # training parameters
-iterations = 100
-number_of_random_samples = 100000
+iterations = 50
+number_of_random_samples = 4800
 training_epochs = 10
 new_paths_per_iteration = 10
 length_of_new_paths = 100

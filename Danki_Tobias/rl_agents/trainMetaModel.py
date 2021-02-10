@@ -13,17 +13,17 @@ from controller import MPCcontroller, sample
 random_data_file = 'random_samples_2021-1-6_11-49'
 # random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
 
-model_id = 0  # is also the number of the rl_samples file
+model_id = 1  # is also the number of the rl_samples file
 
 # if new model = True a new model is created, else set previous_checkpoint to latest finished training iteration to continue training
 new_model = True
 previous_checkpoint = 0
 
 # training parameters
-iterations = 5
-number_of_random_samples = 100000
+iterations = 50
+number_of_random_samples = 100
 training_epochs = 10
-new_paths_per_iteration = 1
+new_paths_per_iteration = 10
 length_of_new_paths = 100
 learning_rate = 1e-3
 batch_size = 512
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
         # Generate trajectories from MPC controllers
         paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                       num_paths=new_paths_per_iteration)
+                                       num_paths=new_paths_per_iteration, finish_when_done=True)
         save_rewards(rewards)
 
         observations = np.concatenate([path["observations"] for path in paths])

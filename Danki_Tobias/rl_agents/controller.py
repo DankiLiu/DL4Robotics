@@ -9,11 +9,13 @@ num_simulated_paths, horizon, num_control_samples = MPCcontroller_params()
 # Load parameters for on policy data collection
 num_paths, on_policy_horizon = on_policy_sampling_params()
 
+
 def sample(env,
            controller,
            num_paths=num_paths,
            horizon=on_policy_horizon,
-           finish_when_done=False):
+           finish_when_done=False,
+           meta=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -34,21 +36,28 @@ def sample(env,
         for j in range(horizon):
             if j % 100 == 0:
                 print(j)
-            act, cost = controller.get_action(states[j], env.sim.get_state())
 
+            if True and j > 0:
+                # adapt meta model with data of last 32 steps trajectory
+                deltas = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
+                controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
+                                                         actions=np.array(actions[max(0, j - 32):j]), deltas=deltas)
+
+            act, cost = controller.get_action(states[j], env.sim.get_state())
             actions.append(act)
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
             # extract relevant state information
             next_states.append(obs[0:14])
-            if j != horizon - 1:
-                states.append(next_states[j])
             total_reward += r
             total_cost += cost
 
             if done and finish_when_done:
                 print('Done')
                 break
+
+            if j != horizon - 1:
+                states.append(next_states[j])
 
         path = {'observations': np.array(states),
                 'actions': np.array(actions),
@@ -103,7 +112,7 @@ class MPCcontroller(Controller):
         for index, position in enumerate(position_state):
             simulation_state = self.env.sim.get_state()
             simulation_state.qpos[:position.shape[0]] = position
-            self.env.sim.setstate(simulation_state)
+            self.env.sim.set_state(simulation_state)
             self.env.sim.forward()
             # get the reward for this state
             costs[index] = -self.env._reward
