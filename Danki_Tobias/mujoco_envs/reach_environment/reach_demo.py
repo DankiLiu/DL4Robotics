@@ -3,6 +3,7 @@ import numpy as np
 from gym_framework.mujoco_envs.mujoco_env import MujocoEnv
 from gym_framework.mujoco_objects import env_objects
 from Danki_Tobias.panda_ctrl.panda_mujoco_joint_ctrl import PandaJointVelControlCrippled
+from Danki_Tobias.panda_ctrl.panda_mujoco_torque_ctrl import PandaTorqueControlCrippled
 from gym_framework.utils.helper import obj_distance
 
 
@@ -62,4 +63,11 @@ class ReachEnvJointVelCtrl(ReachEnvBase):
     def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]), nsubsteps=1):
         crippled = np.array(crippled)
         agent = PandaJointVelControlCrippled(render, crippled=crippled)
+        super().__init__(agent, render, nsubsteps=nsubsteps)
+
+
+class ReachEnvJointTorqueCtrl(ReachEnvBase):
+    def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]), nsubsteps=1):
+        crippled = np.array(crippled)
+        agent = PandaTorqueControlCrippled(render, crippled=crippled)
         super().__init__(agent, render, nsubsteps=nsubsteps)

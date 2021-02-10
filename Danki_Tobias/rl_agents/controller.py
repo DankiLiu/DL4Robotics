@@ -4,18 +4,13 @@ import pandas as pd
 from Danki_Tobias.column_names import *
 from Danki_Tobias.helper.get_parameters import *
 
-# Load parameters for MPC controller
-num_simulated_paths, horizon, num_control_samples = MPCcontroller_params()
-# Load parameters for on policy data collection
-num_paths, on_policy_horizon = on_policy_sampling_params()
-
 
 def sample(env,
            controller,
-           num_paths=num_paths,
-           horizon=on_policy_horizon,
+           num_paths=10,
+           horizon=500,
            finish_when_done=False,
-           meta=False):
+           with_adaptaion=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -37,7 +32,7 @@ def sample(env,
             if j % 100 == 0:
                 print(j)
 
-            if True and j > 0:
+            if with_adaptaion and j > 0:
                 # adapt meta model with data of last 32 steps trajectory
                 deltas = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
                 controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
@@ -95,9 +90,9 @@ class MPCcontroller(Controller):
     def __init__(self,
                  env,
                  dyn_model,
-                 horizon=horizon,
+                 horizon=1,
                  cost_fn=None,
-                 num_simulated_paths=num_simulated_paths
+                 num_simulated_paths=50
                  ):
         self.env = env
         self.dyn_model = dyn_model

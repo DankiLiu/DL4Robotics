@@ -5,13 +5,13 @@ from tensorflow import keras
 import os
 
 from Danki_Tobias.data_scripts.data_reader import *
-from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl
+from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl, ReachEnvJointTorqueCtrl
 from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
 from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
 random_data_file = 'random_samples_2021-1-6_11-49'
-model_id = 1
+model_id = 2
 
 
 def load_model(env, model_checkpoint=99, meta=False):
@@ -55,16 +55,30 @@ def calculate_errors():
 
 
 def visualize_paths(num_paths, path_length, model_checkpoint, meta=False):
-    # TODO: do we need to cripple both environments or keep the controller_env unchanged
     controller_env = ReachEnvJointVelCtrl(render=False, )
-    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, -0.5, 0, 1, 1, 1, 0.2, 1]))
+    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 1, 0, 1, 1, 1, 0.2, 1]))
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
 
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
-    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, meta=meta)
+    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, with_adaptaion=meta)
+
+
+def average_reward(num_paths, path_length, model_checkpoint, meta=False):
+    controller_env = ReachEnvJointVelCtrl(render=False, )
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 0.5, 0, 1, 1, 1, 0.2, 1]))
+    dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
+
+    # init the mpc controller
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
+    paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
+                                   with_adaptaion=meta)
+
+    average_reward = sum(rewards) / num_paths
+    return average_reward
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=100, path_length=1000, model_checkpoint=50, meta=False)
+    visualize_paths(num_paths=100, path_length=1000, model_checkpoint=10, meta=False)
     # calculate_errors()
+    # print(average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=False))

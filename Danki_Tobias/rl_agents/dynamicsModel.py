@@ -11,14 +11,12 @@ from Danki_Tobias.rl_agents.dynamicsModelBase import *
 
 tf.keras.backend.set_floatx('float64')
 
-n_layers, layer_size, batch_size, n_epochs, lr = dyn_model_params()
-
 
 class NNDynamicsModel(BaseDynamicsModel):
     def __init__(self, env, normalization, model, batch_size=512):
         super().__init__(env, normalization, model, batch_size)
 
-    def fit(self, states, actions, deltas, N_EPOCHS=n_epochs):
+    def fit(self, states, actions, deltas, N_EPOCHS):
         """
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
         fit the dynamics model going from normalized states, normalized actions to normalized state differences (s_t+1 - s_t)
