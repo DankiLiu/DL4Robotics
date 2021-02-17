@@ -81,6 +81,9 @@ class PandaJointVelControlCrippled(PandaJointControl):
         super().env_setup(sim, viewer)
         self.workspace = self.get_workspace()
 
+    def set_crippled(self, crippled):
+        self.crippled = crippled
+
     @property
     def action_space(self):
         # upper and lower bound for each joint velocity

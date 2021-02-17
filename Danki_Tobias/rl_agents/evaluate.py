@@ -10,22 +10,47 @@ from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
 from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
-random_data_file = 'random_samples_2021-1-6_11-49'
-model_id = 2
+experiment = 'exp2'
+model_id = 0
+
+"""
+dynamicsModel = NNDynamicsModel
+meta = False
+model_type = 'normal'
+"""
+dynamicsModel = MetaRLDynamicsModel
+meta = True
+model_type = 'meta'
+
+cripple_options_training = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
+                                     [1, 1, 0, 1, 1, 1, 1, 1],
+                                     [1, 1, 1, 1, 0, 1, 1, 1],
+                                     [0.5, 1, 1, 1, 0, 0.3, 1, 1],
+                                     [0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1],
+                                     [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]])
+
+cripple_options_evaluation = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
+                                       [1, 1, 1, 0, 1, 1, 1, 1],
+                                       [1, 1, 1, 1, 1, 1, 0, 1],
+                                       [1, 0.2, 1, 1, 1, 1, 1, 1],
+                                       [1, 1, 1, 1, 0.4, 1, 1, 1],
+                                       [1, 0.8, 0.1, 1, 0.5, 0.2, 1, 1],
+                                       [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]])
 
 
 def load_model(env, model_checkpoint=99, meta=False):
-    normalization = load_normalization_variables(random_data_file)
+    normalization = load_normalization_variables(experiment=experiment)
+
+    model_path = f'../models/{experiment}/{model_type}/model_{model_id}/iteration_{model_checkpoint}.hdf5'
+    model = keras.models.load_model(filepath=model_path)
     if meta:
-        model = keras.models.load_model(filepath=f'../meta_models/model_{model_id}/iteration_{model_checkpoint}.hdf5')
         dyn_model = MetaRLDynamicsModel(env=env, normalization=normalization, model=model)
     else:
-        model = keras.models.load_model(filepath=f'../models/model_{model_id}/iteration_{model_checkpoint}.hdf5')
         dyn_model = NNDynamicsModel(env=env, normalization=normalization, model=model)
     return dyn_model
 
 
-def calculate_errors():
+def calculate_errors():  # TODO: adapt to new data reader functions
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
 
     random_data_file = 'random_samples_2020-12-16_21-18'  # small datafile for testing purpose
@@ -54,9 +79,9 @@ def calculate_errors():
         print(f'Mean squared Error: {mean_squared_error}')
 
 
-def visualize_paths(num_paths, path_length, model_checkpoint, meta=False):
+def visualize_paths(num_paths, path_length, model_checkpoint, meta):
     controller_env = ReachEnvJointVelCtrl(render=False, )
-    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 1, 0, 1, 1, 1, 0.2, 1]))
+    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([0.1, 1, 1, 1, 1, 1, 1, 1]))
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
 
     # init the mpc controller
@@ -64,21 +89,46 @@ def visualize_paths(num_paths, path_length, model_checkpoint, meta=False):
     sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, with_adaptaion=meta)
 
 
-def average_reward(num_paths, path_length, model_checkpoint, meta=False):
+def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
+    controller_env = ReachEnvJointVelCtrl(render=False, )
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=crippled)
+    dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
+    # init the mpc controller
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
+
+    paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
+                                   with_adaptaion=meta)
+    average_reward = sum(rewards) / num_paths
+
+    file_name = f'../data/on_policy/{experiment}/{model_type}/model{model_id}/evaluation.txt'
+    with open(file_name, "a+") as file:
+        file.write(f"Rewards with crippled = {crippled}\n")
+        file.write(f"{rewards}\n")
+        file.write(f"Average Reward = {average_reward}\n")
+
+    return average_reward
+
+
+def average_reward_with_changing_dynamics(num_paths, path_length, model_checkpoint, meta):
     controller_env = ReachEnvJointVelCtrl(render=False, )
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 0.5, 0, 1, 1, 1, 0.2, 1]))
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
-
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
-    paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
-                                   with_adaptaion=meta)
+
+    for _ in num_paths:
+        if experiment == 'exp2':
+            random_env_index = np.random.randint(6)
+            env.set_crippled(cripple_options_evaluation[random_env_index])
+
+        paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=1, finish_when_done=True,
+                                       with_adaptaion=meta)
 
     average_reward = sum(rewards) / num_paths
     return average_reward
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=100, path_length=1000, model_checkpoint=10, meta=False)
+    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50, meta=meta)
     # calculate_errors()
-    # print(average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=False))
+    # print(average_reward(num_paths=2, path_length=1000, model_checkpoint=50, meta=False))

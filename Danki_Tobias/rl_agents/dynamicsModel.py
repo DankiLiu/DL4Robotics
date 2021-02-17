@@ -28,6 +28,8 @@ class NNDynamicsModel(BaseDynamicsModel):
         deltas_normalized = self.normalize(deltas)
 
         input = states_normalized.join(actions_normalized, how='inner')
+        print(deltas_normalized)
+        print(input)
 
         self.model.fit(x=input, y=deltas_normalized, batch_size=self.batch_size, epochs=N_EPOCHS)
 

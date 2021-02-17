@@ -12,10 +12,16 @@ from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 from Danki_Tobias.helper.get_parameters import *
 
-random_data_file = 'random_samples_2021-1-6_11-49'
-# random_data_file = 'random_samples_2020-12-16_21-18' # small datafile for testing purpose
+experiment = 'exp2'
 
-model_id = 2  # is also the number of the rl_samples file
+cripple_options = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
+                            [1, 1, 0, 1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 0, 1, 1, 1],
+                            [0.5, 1, 1, 1, 0, 0.3, 1, 1],
+                            [0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1],
+                            [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]])
+
+model_id = 0  # is also the number of the rl_samples file
 # if new model = True a new model is created,
 # else set previous_checkpoint to latest finished training iteration to continue training
 new_model = True
@@ -23,17 +29,21 @@ previous_checkpoint = 0
 
 dynamicsModel = NNDynamicsModel
 meta = False
+model_type = 'normal'
+"""
 dynamicsModel = MetaRLDynamicsModel
 meta = True
+model_type = 'meta'
+"""
 
 # Load dynamic model parameters from reach.json
-dyn_n_layers, dyn_layer_size, dyn_batch_size, dyn_learning_rate, M, K = model_params(meta, model_id)
+dyn_n_layers, dyn_layer_size, dyn_batch_size, dyn_learning_rate, M, K = model_params(experiment, model_type, model_id)
 # Load mpc_controller parameters from reach.json
-num_simulated_paths, horizon = MPCcontroller_params(meta, model_id)
+num_simulated_paths, horizon = MPCcontroller_params(experiment, model_type, model_id)
 # Load parameters for collecting on-policy data
-new_paths_per_iteration, length_of_new_paths = on_policy_sampling_params(meta, model_id)
+new_paths_per_iteration, length_of_new_paths = on_policy_sampling_params(experiment, model_type, model_id)
 # Load parameters for training
-number_of_random_samples, iterations, training_epochs = training_params(meta, model_id)
+number_of_random_samples, iterations, training_epochs = training_params(experiment, model_type, model_id)
 
 trajectory_length = M + K
 
@@ -46,8 +56,9 @@ def draw_training_samples():
     In General M > K. Standard values M=32 and K=16 are taken from appendix of the paper
     """
     # TODO: load data of multiple sources with different crippled joints
-    states_rand, actions_rand, state_deltas_rand = load_random_samples(random_data_file)
-    states_rl, actions_rl, state_deltas_rl = load_rl_samples(collection=model_id, meta=meta)
+    states_rand, actions_rand, state_deltas_rand = load_random_samples(experiment=experiment)
+    states_rl, actions_rl, state_deltas_rl = load_rl_samples(model_id=model_id, model_type=model_type,
+                                                             experiment=experiment)
 
     all_states = states_rl.append(states_rand)
     all_states = all_states.reset_index(drop=True)
@@ -73,12 +84,11 @@ def draw_training_samples():
         drop=True)
 
 
-def save_rewards(rewards):
+def save_rewards(rewards, model_type):
     average_reward = sum(rewards) / new_paths_per_iteration
     print(f'average_reward: {average_reward}')
-    file_name = f"../data/reach_env/samples_{model_id}_rewards.csv"
-    if meta:
-        file_name = f"../data/reach_env/samples_{model_id}_rewards_meta.csv"
+
+    file_name = f'../data/on_policy/{experiment}/{model_type}/model{model_id}/rewards.csv'
     with open(file_name, "a+") as file:
         wr = csv.writer(file)
         wr.writerow(rewards)
@@ -86,10 +96,10 @@ def save_rewards(rewards):
 
 # TODO: replace constant values to variables declared in header
 if __name__ == "__main__":
-    controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
-    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
+    controller_env = ReachEnvJointVelCtrl(render=False, nsubsteps=10)
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10)
 
-    normalization = load_normalization_variables(random_data_file)
+    normalization = load_normalization_variables(experiment=experiment)
 
     if new_model:
         dyn_model = dynamicsModel.new_model(env=env,
@@ -101,10 +111,8 @@ if __name__ == "__main__":
                                             batch_size=dyn_batch_size,
                                             learning_rate=dyn_learning_rate)
     else:
-        file_path = f'../models/model_{model_id}/iteration_{previous_checkpoint}.hdf5'
-        if meta:
-            file_path = f'../meta_models/model_{model_id}/iteration_{previous_checkpoint}.hdf5'
-        model = keras.models.load_model(filepath=file_path)
+        model_path = f'../models/{experiment}/{model_type}/model_{model_id}/iteration_{previous_checkpoint}.hdf5'
+        model = keras.models.load_model(filepath=model_path)
         dyn_model = dynamicsModel(env=env, normalization=normalization, model=model)
 
     # init the mpc controller
@@ -117,20 +125,41 @@ if __name__ == "__main__":
         print(f'iteration: {iteration}')
         dyn_model.fit(*draw_training_samples(), N_EPOCHS=training_epochs)
 
+        if experiment == 'exp2':
+            random_env_index = np.random.randint(6)
+            env.set_crippled(cripple_options[random_env_index])
+            print("Change dynamic of environment")
+            print(cripple_options[random_env_index])
+
         # Generate new trajectories with the MPC controllers
         paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                       num_paths=new_paths_per_iteration, finish_when_done=True, with_adaptaion=True)
+                                       num_paths=new_paths_per_iteration, finish_when_done=True, with_adaptaion=meta)
 
-        save_rewards(rewards)
-
+        save_rewards(rewards, model_type=model_type)
         observations = np.concatenate([path["observations"] for path in paths])
         actions = np.concatenate([path["actions"] for path in paths])
         next_observations = np.concatenate([path["next_observations"] for path in paths])
         observation_delta = next_observations - observations
+        # store on policy data
+        store_in_file(observations, actions, observation_delta, experiment=experiment, model_id=model_id,
+                      model_type=model_type)
 
-        store_in_file(observations, actions, observation_delta, collection=model_id, meta=meta)
-        file_path = f'../models/model_{model_id}/iteration_{iteration + previous_checkpoint + 1}.hdf5'
-        if meta:
-            file_path = f'../meta_models/model_{model_id}/iteration_{iteration + previous_checkpoint + 1}.hdf5'
-        dyn_model.model.save(filepath=file_path)
+        if experiment == 'exp2' and not meta:
+            # Generate trajectories with adaptation
+            paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
+                                           num_paths=new_paths_per_iteration, finish_when_done=True,
+                                           with_adaptaion=True)
+
+            save_rewards(rewards, model_type='online_adaptation')
+            observations = np.concatenate([path["observations"] for path in paths])
+            actions = np.concatenate([path["actions"] for path in paths])
+            next_observations = np.concatenate([path["next_observations"] for path in paths])
+            observation_delta = next_observations - observations
+            # store on policy data
+            store_in_file(observations, actions, observation_delta, experiment=experiment, model_id=model_id,
+                          model_type='online_adaptation')
+
+        # save the latest model
+        model_path = f'../models/{experiment}/{model_type}/model_{model_id}/iteration_{iteration + previous_checkpoint + 1}.hdf5'
+        dyn_model.model.save(filepath=model_path)
         print('Model saved')
