@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 
 
 
-experiment = 'exp2'
-model_type = 'meta'
+experiment = 'exp1'
+model_type = 'normal'
 model_id = 0
 
 

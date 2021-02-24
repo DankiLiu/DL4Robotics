@@ -29,8 +29,7 @@ cripple_options_training = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
                                      [0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1],
                                      [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]])
 
-cripple_options_evaluation = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
-                                       [1, 1, 1, 0, 1, 1, 1, 1],
+cripple_options_evaluation = np.array([[1, 1, 1, 0, 1, 1, 1, 1],
                                        [1, 1, 1, 1, 1, 1, 0, 1],
                                        [1, 0.2, 1, 1, 1, 1, 1, 1],
                                        [1, 1, 1, 1, 0.4, 1, 1, 1],
@@ -81,7 +80,7 @@ def calculate_errors():  # TODO: adapt to new data reader functions
 
 def visualize_paths(num_paths, path_length, model_checkpoint, meta):
     controller_env = ReachEnvJointVelCtrl(render=False, )
-    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([0.1, 1, 1, 1, 1, 1, 1, 1]))
+    env = ReachEnvJointVelCtrl(render=True, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
 
     # init the mpc controller
@@ -89,7 +88,8 @@ def visualize_paths(num_paths, path_length, model_checkpoint, meta):
     sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, with_adaptaion=meta)
 
 
-def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
+def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]),
+                   name=""):
     controller_env = ReachEnvJointVelCtrl(render=False, )
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=crippled)
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
@@ -100,7 +100,8 @@ def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.a
                                    with_adaptaion=meta)
     average_reward = sum(rewards) / num_paths
 
-    file_name = f'../data/on_policy/{experiment}/{model_type}/model{model_id}/evaluation.txt'
+    file_name = f'../data/on_policy/{experiment}/{model_type}/model{model_id}/evaluation_{name}.txt'
+    # file_name = f'../data/on_policy/{experiment}/online_adaptation/model{model_id}/evaluation_{name}.txt'
     with open(file_name, "a+") as file:
         file.write(f"Rewards with crippled = {crippled}\n")
         file.write(f"{rewards}\n")
@@ -109,26 +110,21 @@ def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.a
     return average_reward
 
 
-def average_reward_with_changing_dynamics(num_paths, path_length, model_checkpoint, meta):
-    controller_env = ReachEnvJointVelCtrl(render=False, )
-    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 0.5, 0, 1, 1, 1, 0.2, 1]))
-    dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
-    # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
+def average_reward_training_envs():
+    for i, c in enumerate(cripple_options_training):
+        average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta, crippled=c,
+                       name=f"training_{i}")
 
-    for _ in num_paths:
-        if experiment == 'exp2':
-            random_env_index = np.random.randint(6)
-            env.set_crippled(cripple_options_evaluation[random_env_index])
 
-        paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=1, finish_when_done=True,
-                                       with_adaptaion=meta)
-
-    average_reward = sum(rewards) / num_paths
-    return average_reward
+def average_reward_test_envs():
+    for i, c in enumerate(cripple_options_evaluation):
+        average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta, crippled=c, name=f"eval_{i}")
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50, meta=meta)
+    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=1, meta=meta)
     # calculate_errors()
-    # print(average_reward(num_paths=2, path_length=1000, model_checkpoint=50, meta=False))
+    # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
+    # for e in ['exp1', 'exp2']:
+    #    experiment = e
+    #    average_reward_training_envs()

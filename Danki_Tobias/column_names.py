@@ -11,6 +11,6 @@ delta_columns = ['state_delta_positions_0', 'state_delta_positions_1', 'state_de
                  'state_delta_velocities_2', 'state_delta_velocities_3', 'state_delta_velocities_4',
                  'state_delta_velocities_5', 'state_delta_velocities_6']
 
-
-
-
+state_columns_exp3 = ['states_0', 'states_1', 'states_2', 'states_3', 'states_4', 'states_5', 'states_6']
+next_state_columns = ['next_states_0', 'next_states_1', 'next_states_2', 'next_states_3', 'next_states_4',
+                      'next_states_5', 'next_states_6']

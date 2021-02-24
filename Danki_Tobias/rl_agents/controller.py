@@ -92,13 +92,14 @@ class MPCcontroller(Controller):
                  dyn_model,
                  horizon=1,
                  cost_fn=None,
-                 num_simulated_paths=50
-                 ):
+                 num_simulated_paths=50,
+                 exp3=False):
         self.env = env
         self.dyn_model = dyn_model
         self.horizon = horizon
         self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
+        self.exp3 = exp3
 
     def cost(self, next_state):
         position_state = next_state[:, :7]
@@ -124,6 +125,8 @@ class MPCcontroller(Controller):
         # predict the next state
         for i in range(self.horizon):
             states_df = pd.DataFrame(states[-1], columns=state_columns)
+            if self.exp3:
+                states_df = pd.DataFrame(states[-1], columns=state_columns_exp3)
             actions_df = pd.DataFrame(sampled_actions[i, :], columns=action_columns)
             next_states.append(self.dyn_model.predict(states_df, actions_df).values)
 

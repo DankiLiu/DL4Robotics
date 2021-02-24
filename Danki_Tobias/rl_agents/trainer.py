@@ -12,7 +12,10 @@ from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 from Danki_Tobias.helper.get_parameters import *
 
-experiment = 'exp2'
+experiment = 'exp3'
+if experiment == 'exp3':
+    from Danki_Tobias.rl_agents.dynamicsModelState import NNDynamicsModel
+    print("TEST")
 
 cripple_options = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
                             [1, 1, 0, 1, 1, 1, 1, 1],
@@ -117,14 +120,13 @@ if __name__ == "__main__":
 
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=horizon,
-                                   num_simulated_paths=num_simulated_paths)
+                                   num_simulated_paths=num_simulated_paths, exp3=True)
 
     # sample new training examples
     # retrain the model
     for iteration in range(iterations):
         print(f'iteration: {iteration}')
         dyn_model.fit(*draw_training_samples(), N_EPOCHS=training_epochs)
-
         if experiment == 'exp2':
             random_env_index = np.random.randint(6)
             env.set_crippled(cripple_options[random_env_index])
