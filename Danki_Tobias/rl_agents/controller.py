@@ -10,12 +10,17 @@ def sample(env,
            num_paths=10,
            horizon=500,
            finish_when_done=False,
-           with_adaptaion=False):
+           with_adaptaion=False,
+           exp3=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
         Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
     """
+    state_length = 14
+    if exp3:
+        state_length = 7
+
     paths = []
     rewards = []
     costs = []
@@ -25,7 +30,7 @@ def sample(env,
         states = list()
         actions = list()
         next_states = list()
-        states.append(env.reset()[0:14])
+        states.append(env.reset()[0:state_length])
         total_reward = 0
         total_cost = 0
         for j in range(horizon):
@@ -34,16 +39,21 @@ def sample(env,
 
             if with_adaptaion and j > 0:
                 # adapt meta model with data of last 32 steps trajectory
-                deltas = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
-                controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
-                                                         actions=np.array(actions[max(0, j - 32):j]), deltas=deltas)
+                if exp3:
+                    controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
+                                                             actions=np.array(actions[max(0, j - 32):j]),
+                                                             next_states=np.array(next_states[max(0, j - 32):j]))
+                else:
+                    deltas = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
+                    controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
+                                                             actions=np.array(actions[max(0, j - 32):j]), deltas=deltas)
 
             act, cost = controller.get_action(states[j], env.sim.get_state())
             actions.append(act)
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
             # extract relevant state information
-            next_states.append(obs[0:14])
+            next_states.append(obs[0:state_length])
             total_reward += r
             total_cost += cost
 
@@ -124,9 +134,11 @@ class MPCcontroller(Controller):
 
         # predict the next state
         for i in range(self.horizon):
-            states_df = pd.DataFrame(states[-1], columns=state_columns)
             if self.exp3:
                 states_df = pd.DataFrame(states[-1], columns=state_columns_exp3)
+            else:
+                states_df = pd.DataFrame(states[-1], columns=state_columns)
+
             actions_df = pd.DataFrame(sampled_actions[i, :], columns=action_columns)
             next_states.append(self.dyn_model.predict(states_df, actions_df).values)
 

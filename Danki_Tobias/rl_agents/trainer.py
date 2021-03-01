@@ -12,10 +12,14 @@ from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 from Danki_Tobias.helper.get_parameters import *
 
+exp3 = False
+
 experiment = 'exp3'
 if experiment == 'exp3':
     from Danki_Tobias.rl_agents.dynamicsModelState import NNDynamicsModel
-    print("TEST")
+    from Danki_Tobias.rl_agents.metaRLDynamicsModelState import MetaRLDynamicsModel
+
+    exp3 = True
 
 cripple_options = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
                             [1, 1, 0, 1, 1, 1, 1, 1],
@@ -24,7 +28,7 @@ cripple_options = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
                             [0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1],
                             [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]])
 
-model_id = 0  # is also the number of the rl_samples file
+model_id = 1  # is also the number of the rl_samples file
 # if new model = True a new model is created,
 # else set previous_checkpoint to latest finished training iteration to continue training
 new_model = True
@@ -120,7 +124,7 @@ if __name__ == "__main__":
 
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=horizon,
-                                   num_simulated_paths=num_simulated_paths, exp3=True)
+                                   num_simulated_paths=num_simulated_paths, exp3=exp3)
 
     # sample new training examples
     # retrain the model
@@ -135,7 +139,8 @@ if __name__ == "__main__":
 
         # Generate new trajectories with the MPC controllers
         paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                       num_paths=new_paths_per_iteration, finish_when_done=True, with_adaptaion=meta)
+                                       num_paths=new_paths_per_iteration, finish_when_done=True, with_adaptaion=meta,
+                                       exp3=exp3)
 
         save_rewards(rewards, model_type=model_type)
         observations = np.concatenate([path["observations"] for path in paths])

@@ -10,7 +10,14 @@ from Danki_Tobias.rl_agents.dynamicsModel import NNDynamicsModel
 from Danki_Tobias.rl_agents.metaRLDynamicsModel import MetaRLDynamicsModel
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 
-experiment = 'exp2'
+exp3 = False
+experiment = 'exp3'
+if experiment == 'exp3':
+    from Danki_Tobias.rl_agents.dynamicsModelState import NNDynamicsModel
+    from Danki_Tobias.rl_agents.metaRLDynamicsModelState import MetaRLDynamicsModel
+
+    exp3 = True
+
 model_id = 0
 
 """
@@ -84,8 +91,10 @@ def visualize_paths(num_paths, path_length, model_checkpoint, meta):
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
 
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
-    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, with_adaptaion=meta)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100,
+                                   exp3=exp3)
+    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True, with_adaptaion=meta,
+           exp3=exp3)
 
 
 def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]),
@@ -94,10 +103,11 @@ def average_reward(num_paths, path_length, model_checkpoint, meta, crippled=np.a
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=crippled)
     dyn_model = load_model(env, model_checkpoint=model_checkpoint, meta=meta)
     # init the mpc controller
-    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20)
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=20,
+                                   exp3=exp3)
 
     paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
-                                   with_adaptaion=meta)
+                                   with_adaptaion=meta, exp3=exp3)
     average_reward = sum(rewards) / num_paths
 
     file_name = f'../data/on_policy/{experiment}/{model_type}/model{model_id}/evaluation_{name}.txt'
@@ -122,9 +132,10 @@ def average_reward_test_envs():
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=1, meta=meta)
+    # visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50, meta=meta)
     # calculate_errors()
     # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
     # for e in ['exp1', 'exp2']:
     #    experiment = e
-    #    average_reward_training_envs()
+    # average_reward_test_envs()
+    average_reward_training_envs()

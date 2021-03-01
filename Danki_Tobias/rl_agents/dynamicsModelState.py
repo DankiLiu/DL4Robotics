@@ -31,7 +31,6 @@ class NNDynamicsModel(BaseDynamicsModel):
         """
 
         ### normalize
-        print(states)
         states_normalized = self.normalize(states)
         actions_normalized = self.normalize(actions)
         next_states_normalized = self.normalize(next_states)
@@ -42,9 +41,9 @@ class NNDynamicsModel(BaseDynamicsModel):
 
     def normalize_and_adapt(self, states, actions, next_states):
         ### normalize
-        states_normalized = self.normalize(pd.DataFrame(states, columns=state_columns))
+        states_normalized = self.normalize(pd.DataFrame(states, columns=state_columns_exp3))
         actions_normalized = self.normalize(pd.DataFrame(actions, columns=action_columns))
-        next_states_normalized = self.normalize(pd.DataFrame(next_states, columns=delta_columns))
+        next_states_normalized = self.normalize(pd.DataFrame(next_states, columns=next_state_columns))
         input = states_normalized.join(actions_normalized, how='inner')
         self.model.fit(input, next_states_normalized, batch_size=1, verbose=0)
 
@@ -58,7 +57,6 @@ class NNDynamicsModel(BaseDynamicsModel):
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
 
-        predictions = pd.DataFrame(self.model.predict(input), columns=delta_columns)
+        predictions = pd.DataFrame(self.model.predict(input), columns=next_state_columns)
         predictions = self.denormalize(predictions)
-        predictions.columns = state_columns
         return predictions
