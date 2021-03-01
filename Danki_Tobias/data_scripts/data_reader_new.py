@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import csv
 
 from Danki_Tobias.column_names import *
 
@@ -90,7 +91,17 @@ class DataReader():
         else:
             rollout_df.to_csv(file_name, index=False)
 
+    def save_rewards(self, rewards, algorithm, new_paths_per_iteration):
+        average_reward = sum(rewards) / new_paths_per_iteration
+        print(f'average_reward: {average_reward}')
 
+        file_name = f'{self.on_policy_data_directory}{algorithm}/rewards.csv'
+        with open(file_name, "a+") as file:
+            wr = csv.writer(file)
+            wr.writerow(rewards)
+
+
+"""
 data_type_options = ['position', 'position_deltas', 'position_and_velocity', 'position_and_velocity_deltas']
 train_on_possibilities = ['non_crippled', 'multiple_envs']
 
@@ -99,5 +110,4 @@ for dt in data_type_options:
         dr = DataReader(data_type=dt, train_on=tr)
         dr.save_normalization_variables(validation=True)
         dr.save_normalization_variables(validation=False)
-
-
+"""

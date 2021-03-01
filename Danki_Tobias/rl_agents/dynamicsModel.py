@@ -16,6 +16,14 @@ class NNDynamicsModel(BaseDynamicsModel):
     def __init__(self, env, normalization, model, batch_size=512):
         super().__init__(env, normalization, model, batch_size)
 
+    @classmethod
+    def new_model(cls, env, n_layers, size, activation, output_activation, normalization, batch_size, learning_rate):
+        ob_dim = 14
+        ac_dim = 7
+        model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation, learning_rate)
+
+        return cls(env, normalization, model, batch_size)
+
     def fit(self, states, actions, deltas, N_EPOCHS):
         """
         Write a function to take in a dataset of (unnormalized)states, (unnormalized)actions, (unnormalized)next_states and
