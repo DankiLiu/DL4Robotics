@@ -16,7 +16,7 @@ n_layers, layer_size, batch_size, n_epochs, M, K = metaRL_dyn_model_params()
 
 
 class MetaRLDynamicsModel(BaseDynamicsModel):
-    def __init__(self, env, normalization, model, batch_size, states_only):
+    def __init__(self, env, normalization, model, states_only, batch_size=512):
         super().__init__(env, normalization, model, batch_size)
         self.action_columns = action_columns
         if states_only:
@@ -113,8 +113,8 @@ class MetaRLDynamicsModel(BaseDynamicsModel):
 
 
 class MetaRLDynamicsModelDeltaPrediction(MetaRLDynamicsModel):
-    def __init__(self, env, normalization, model, batch_size, states_only):
-        super().__init__(env, normalization, model, batch_size, states_only)
+    def __init__(self, env, normalization, model, states_only, batch_size=512):
+        super().__init__(env, normalization, model, states_only, batch_size)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions

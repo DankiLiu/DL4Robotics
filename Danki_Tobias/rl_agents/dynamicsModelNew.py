@@ -13,7 +13,7 @@ tf.keras.backend.set_floatx('float64')
 
 
 class NNDynamicsModel(BaseDynamicsModel):
-    def __init__(self, env, normalization, model, batch_size, states_only):
+    def __init__(self, env, normalization, model, states_only, batch_size=512):
         super().__init__(env, normalization, model, batch_size)
         self.action_columns = action_columns
         if states_only:
@@ -73,8 +73,8 @@ class NNDynamicsModel(BaseDynamicsModel):
 
 
 class NNDynamicsModelDeltaPrediction(NNDynamicsModel):
-    def __init__(self, env, normalization, model, batch_size, states_only):
-        super().__init__(env, normalization, model, batch_size, states_only)
+    def __init__(self, env, normalization, model, states_only, batch_size=512):
+        super().__init__(env, normalization, model, states_only, batch_size)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions

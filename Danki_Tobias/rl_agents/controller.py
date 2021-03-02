@@ -9,9 +9,78 @@ def sample(env,
            controller,
            num_paths=10,
            horizon=500,
-           finish_when_done=False,
-           with_adaptaion=False,
-           exp3=False):
+           finish_when_done=True,
+           with_adaptation=False,
+           predicts_state=True,
+           states_only=False):
+    """
+        Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
+        and returns rollouts by running on the env.
+        Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
+    """
+    state_length = 14
+    if states_only:
+        state_length = 7
+
+    paths = []
+    rewards = []
+    costs = []
+    print("num_sum_path", num_paths)
+    for i in range(num_paths):
+        print("path :", i)
+        states = list()
+        actions = list()
+        next_states = list()
+        states.append(env.reset()[0:state_length])
+        total_reward = 0
+        total_cost = 0
+        for j in range(horizon):
+            if j % 100 == 0:
+                print(j)
+
+            if with_adaptation and j > 0:
+                # adapt meta model with data of last 32 steps trajectory
+                if predicts_state:
+                    labels = np.array(next_states[max(0, j - 32):j])
+                else:  # predicts delta
+                    labels = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
+                controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
+                                                         actions=np.array(actions[max(0, j - 32):j]), labels=labels)
+
+            act, cost = controller.get_action(states[j], env.sim.get_state())
+            actions.append(act)
+            obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
+
+            # extract relevant state information
+            next_states.append(obs[0:state_length])
+            total_reward += r
+            total_cost += cost
+
+            if done and finish_when_done:
+                print('Done')
+                break
+
+            if j != horizon - 1:
+                states.append(next_states[j])
+
+        path = {'observations': np.array(states),
+                'actions': np.array(actions),
+                'next_observations': np.array(next_states)
+                }
+        paths.append(path)
+        rewards.append(total_reward)
+        costs.append(total_cost)
+
+    return paths, rewards, costs
+
+
+def sample_old(env,
+               controller,
+               num_paths=10,
+               horizon=500,
+               finish_when_done=False,
+               with_adaptaion=False,
+               exp3=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -103,13 +172,13 @@ class MPCcontroller(Controller):
                  horizon=1,
                  cost_fn=None,
                  num_simulated_paths=50,
-                 exp3=False):
+                 states_only=False):
         self.env = env
         self.dyn_model = dyn_model
         self.horizon = horizon
         self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
-        self.exp3 = exp3
+        self.states_only = states_only
 
     def cost(self, next_state):
         position_state = next_state[:, :7]
@@ -134,8 +203,8 @@ class MPCcontroller(Controller):
 
         # predict the next state
         for i in range(self.horizon):
-            if self.exp3:
-                states_df = pd.DataFrame(states[-1], columns=state_columns_exp3)
+            if self.states_only:
+                states_df = pd.DataFrame(states[-1], columns=state_columns_position_only)
             else:
                 states_df = pd.DataFrame(states[-1], columns=state_columns)
 
