@@ -10,24 +10,43 @@ reach_env_data_path = str(current_path.parent) + "/data/reach_env"
 
 # TODO: write params into a separate file
 
-not_crippled = np.ones(8)
+class AgentJoints():
+    def __init__(self, joints, name):
+        self.joints = np.array(joints)
+        self.name = name
 
-disabled_joints_01 = np.array([1, 1, 0, 1, 1, 1, 1, 1])
+    def print_agnet_info(self):
+        print("joints of agent <{}> are {}".format(self.name, self.joints))
 
-disabled_joints_02 = np.array([1, 1, 1, 1, 0, 1, 1, 1])
 
 # Test: collect random data with disabled_joints_01
 if __name__ == '__main__':
     num_rollouts_train, num_rollouts_val, steps_per_rollout_train, steps_per_rollout_val = data_collection_params()
-    print("create agent")
-    agent = ReachEnvJointVelCtrl(render=False, crippled=disabled_joints_01, nsubsteps=10)
-    print("create data collector")
-    data_collector = CollectRandomData(num_rollouts_train,
-                                       num_rollouts_val,
-                                       steps_per_rollout_train,
-                                       steps_per_rollout_val,
-                                       "d_03", # disabled third joint
-                                       agent,
-                                       reach_env_data_path + "/_d_03")
-    data_collector.perform_data_collection()
+    """
+    agents_joints = [AgentJoints(np.array([1, 1, 1, 1, 1, 1, 1, 1]), "non-crippled"),
+                     AgentJoints(np.array([1, 1, 0, 1, 1, 1, 1, 1]), "third_disabled"),
+                     AgentJoints(np.array([1, 1, 1, 1, 0, 1, 1, 1]), "fifth_disabled"),
+                     AgentJoints(np.array([0.5, 1, 1, 1, 0, 0.3, 1, 1]), "056_partial"),
+                     AgentJoints(np.array([0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1]), "123457_partial"),
+                     AgentJoints(np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]), "1234567_partial")]
+    """
+    agents_joints = [AgentJoints(np.array([1, 1, 1, 1, 1, 1, 1, 1]), "non_crippled_test"),
+                     AgentJoints(np.array([1, 1, 1, 0, 1, 1, 1, 1]), "fourth_disabled_test"),
+                     AgentJoints(np.array([1, 1, 1, 1, 1, 1, 0, 1]), "seventh_disabled_test"),
+                     AgentJoints(np.array([1, 0.2, 1, 1, 1, 1, 1, 1]), "2_partial_test"),
+                     AgentJoints(np.array([1, 1, 1, 1, 0.4, 1, 1, 1]), "5_partial_test"),
+                     AgentJoints(np.array([1, 0.8, 0.1, 1, 0.5, 0.2, 1, 1]), "2356_partial_test"),
+                     AgentJoints(np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]), "all_partial_test")]
+
+    for agent_joints in agents_joints:
+        agent = ReachEnvJointVelCtrl(render=False, crippled=agent_joints.joints, nsubsteps=10)
+        print("create data collector for ", agent_joints.name)
+        data_collector = CollectRandomData(num_rollouts_train,
+                                           num_rollouts_val,
+                                           steps_per_rollout_train,
+                                           steps_per_rollout_val,
+                                           agent_joints.name, # disabled third joint
+                                           agent,
+                                           reach_env_data_path + "/" + agent_joints.name)
+        data_collector.perform_data_collection()
 
