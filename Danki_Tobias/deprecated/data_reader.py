@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from Danki_Tobias.column_names import *
+from Danki_Tobias.helper.column_names import *
 
 
 def load_random_samples(experiment='exp1', validation=False):

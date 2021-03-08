@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import csv
 
-from Danki_Tobias.column_names import *
+from Danki_Tobias.helper.column_names import *
 
 
 class DataReader():

@@ -4,7 +4,7 @@ from tensorflow.keras import layers
 import numpy as np
 import pandas as pd
 
-from Danki_Tobias.column_names import *
+from Danki_Tobias.helper.column_names import *
 
 def build_mlp(output_size,
               n_layers=2,

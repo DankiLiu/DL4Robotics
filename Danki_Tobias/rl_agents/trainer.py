@@ -3,7 +3,8 @@ from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointV
 from Danki_Tobias.rl_agents.dynamicsModel import *
 from Danki_Tobias.rl_agents.metaRLDynamicsModel import *
 from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
-from Danki_Tobias.helper.get_parameters_new import *
+from Danki_Tobias.helper.get_parameters import *
+from Danki_Tobias.helper.environment_definitions import cripple_options_evaluation, cripple_options_training
 
 data_type_options = ['position', 'position_deltas', 'position_and_velocity', 'position_and_velocity_deltas']
 train_on_options = ['non_crippled', 'multiple_envs']
@@ -35,12 +36,7 @@ elif data_type == 'position_deltas' or data_type == 'position_and_velocity_delta
 else:
     print("Data Type not valid")
 
-cripple_options = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
-                            [1, 1, 0, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 0, 1, 1, 1],
-                            [0.5, 1, 1, 1, 0, 0.3, 1, 1],
-                            [0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1],
-                            [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]])
+cripple_options = cripple_options_training
 
 # Load dynamic model parameters from reach.json
 dyn_n_layers, dyn_layer_size, dyn_batch_size, dyn_learning_rate, M, K = model_params(data_type, train_on, algorithm)

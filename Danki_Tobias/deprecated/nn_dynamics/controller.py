@@ -1,7 +1,5 @@
 import numpy as np
-import pandas as pd
 
-from Danki_Tobias.column_names import *
 from Danki_Tobias.nn_dynamics.cost_function import trajectory_cost
 
 class Controller():

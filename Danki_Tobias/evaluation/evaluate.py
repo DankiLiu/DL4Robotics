@@ -5,6 +5,7 @@ from tensorflow import keras
 import os
 
 from Danki_Tobias.data_scripts.data_reader import *
+from Danki_Tobias.helper.environment_definitions import cripple_options_evaluation, cripple_options_training
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl, ReachEnvJointTorqueCtrl
 from Danki_Tobias.rl_agents.dynamicsModel import *
 from Danki_Tobias.rl_agents.metaRLDynamicsModel import *
@@ -37,19 +38,6 @@ else:
     print("Data Type not valid")
 
 data_reader = DataReader(data_type=data_type, train_on=train_on)
-cripple_options_training = np.array([[1, 1, 1, 1, 1, 1, 1, 1],
-                                     [1, 1, 0, 1, 1, 1, 1, 1],
-                                     [1, 1, 1, 1, 0, 1, 1, 1],
-                                     [0.5, 1, 1, 1, 0, 0.3, 1, 1],
-                                     [0.8, 0.9, 0.6, 0.8, 0.5, 1, 0.7, 1],
-                                     [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1]])
-
-cripple_options_evaluation = np.array([[1, 1, 1, 0, 1, 1, 1, 1],
-                                       [1, 1, 1, 1, 1, 1, 0, 1],
-                                       [1, 0.2, 1, 1, 1, 1, 1, 1],
-                                       [1, 1, 1, 1, 0.4, 1, 1, 1],
-                                       [1, 0.8, 0.1, 1, 0.5, 0.2, 1, 1],
-                                       [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]])
 
 
 def load_model(env, model_checkpoint=50):
