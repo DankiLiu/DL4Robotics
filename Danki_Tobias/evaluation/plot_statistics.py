@@ -31,6 +31,7 @@ def read_all_rewards():
                     rewards.append(read_average_reward(data_type, train_on, algorithm, name))
 
     all_rewards = pd.Series(rewards, index=multi_index)
+    return all_rewards
 
 
 x = read_all_rewards()

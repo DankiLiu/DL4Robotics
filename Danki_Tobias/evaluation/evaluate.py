@@ -6,6 +6,7 @@ import os
 
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.helper.environment_definitions import cripple_options_evaluation, cripple_options_training
+from Danki_Tobias.helper.column_names import *
 from Danki_Tobias.mujoco_envs.reach_environment.reach_demo import ReachEnvJointVelCtrl, ReachEnvJointTorqueCtrl
 from Danki_Tobias.rl_agents.dynamicsModel import *
 from Danki_Tobias.rl_agents.metaRLDynamicsModel import *
@@ -125,12 +126,12 @@ def average_reward_test_envs(num_paths):
 
 
 if __name__ == "__main__":
-    # visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
+    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
     # calculate_errors()
     # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
     # for e in ['exp1', 'exp2']:
     #    experiment = e
 
     #average_reward_training_envs(20)
-    average_reward_test_envs(20)
+    # average_reward_test_envs(20)
 

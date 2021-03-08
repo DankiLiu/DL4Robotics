@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from Danki_Tobias.helper.column_names import *
-
 from Danki_Tobias.rl_agents.dynamicsModelBase import *
 
 tf.keras.backend.set_floatx('float64')
