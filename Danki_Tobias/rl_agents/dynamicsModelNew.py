@@ -32,7 +32,7 @@ class NNDynamicsModel(BaseDynamicsModel):
             ob_dim = 14
 
         model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation, learning_rate)
-        return cls(env, normalization, model, batch_size, states_only)
+        return cls(env, normalization, model, states_only, batch_size)
 
     def fit(self, states, actions, labels, N_EPOCHS):
         """
@@ -66,7 +66,6 @@ class NNDynamicsModel(BaseDynamicsModel):
 
         # combine state and action to input
         input = np.concatenate((states_normalized, actions_normalized), axis=1)
-
         predictions = pd.DataFrame(self.model.predict(input), columns=self.label_columns)
         predictions = self.denormalize(predictions)
         return predictions

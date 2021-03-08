@@ -15,11 +15,10 @@ train_on_options = ['non_crippled', 'multiple_envs']
 
 data_type = data_type_options[0]
 train_on = train_on_options[1]
+algorithm = 'normal'  # 'meta' # 'online_adaptation'
 
-algorithm = 'normal'  # 'meta' # 'with_adaptation'
 meta = algorithm == 'meta'
-with_adaptation = algorithm == 'with_adaptation'
-
+with_adaptation = algorithm == 'online_adaptation'
 states_only = (data_type == 'position' or data_type == 'position_deltas')
 
 if data_type == 'position' or data_type == 'position_and_velocity':
@@ -57,6 +56,8 @@ def load_model(env, model_checkpoint=50):
     normalization = data_reader.load_normalization_variables()
 
     model_path = f'../models/{data_type}/trained_on_{train_on}/{algorithm}/iteration_{model_checkpoint}.hdf5'
+    if with_adaptation:
+        model_path = f'../models/{data_type}/trained_on_{train_on}/normal/iteration_{model_checkpoint}.hdf5'
 
     model = keras.models.load_model(filepath=model_path)
     dyn_model = dynamicsModel(env=env, normalization=normalization, model=model, states_only=states_only)
@@ -121,15 +122,16 @@ def average_reward(num_paths, path_length, name, model_checkpoint=50, crippled=n
     return average_reward
 
 
-def average_reward_training_envs():
+def average_reward_training_envs(num_paths):
     for i, c in enumerate(cripple_options_training):
-        average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta, crippled=c,
+        average_reward(num_paths=num_paths, path_length=500, model_checkpoint=50, crippled=c,
                        name=f"training_{i}")
 
 
-def average_reward_test_envs():
+def average_reward_test_envs(num_paths):
     for i, c in enumerate(cripple_options_evaluation):
-        average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta, crippled=c, name=f"eval_{i}")
+        average_reward(num_paths=num_paths, path_length=500, model_checkpoint=50, crippled=c,
+                       name=f"eval_{i}")
 
 
 if __name__ == "__main__":
@@ -138,5 +140,48 @@ if __name__ == "__main__":
     # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
     # for e in ['exp1', 'exp2']:
     #    experiment = e
-    # average_reward_test_envs()
-    average_reward_training_envs()
+
+    for datatype in ['position_and_velocity_deltas']:
+        for train_option in ['multiple_envs']:
+            for algo in ['normal', 'meta', 'online_adaptation']:
+                
+                if train_option == train_on_options[0] and algo == 'normal':
+                    print("Skipped")
+                    continue
+
+                num_paths = 20
+                if datatype == 'position_and_velocity_deltas':
+                    num_paths = 100
+
+                data_type = datatype
+                train_on = train_option
+                algorithm = algo
+
+                meta = algorithm == 'meta'
+                with_adaptation = algorithm == 'online_adaptation'
+                states_only = (data_type == 'position' or data_type == 'position_deltas')
+
+                if data_type == 'position' or data_type == 'position_and_velocity':
+                    predicts_state = True
+                    if meta:
+                        dynamicsModel = MetaRLDynamicsModel
+                    else:
+                        dynamicsModel = NNDynamicsModel
+                elif data_type == 'position_deltas' or data_type == 'position_and_velocity_deltas':
+                    predicts_state = False
+                    if meta:
+                        dynamicsModel = MetaRLDynamicsModelDeltaPrediction
+                    else:
+                        dynamicsModel = NNDynamicsModelDeltaPrediction
+                else:
+                    print("Data Type not valid")
+
+                data_reader = DataReader(data_type=data_type, train_on=train_on)
+
+                print("Collect data for:")
+                print(f"data_type: {data_type}")
+                print(f"train_on: {train_on}")
+                print(f"algorithm: {algorithm}")
+
+                average_reward_training_envs(num_paths)
+                average_reward_test_envs(num_paths)

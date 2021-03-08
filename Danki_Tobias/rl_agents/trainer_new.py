@@ -161,9 +161,13 @@ def train():
 
 
 if __name__ == "__main__":
-    for datatype in ['position_deltas', 'position_and_velocity', 'position_and_velocity_deltas']:
+    for datatype in ['position_and_velocity', 'position_and_velocity_deltas']:
         for train_option in train_on_options:
             for algo in ['normal', 'meta']:
+
+                if datatype == 'position_and_velocity' and train_option == train_on_options[0] and algo == "normal":
+                    print("Skipped")
+                    continue
 
                 data_type = datatype
                 train_on = train_option
@@ -174,6 +178,7 @@ if __name__ == "__main__":
                 meta = algorithm == 'meta'
 
                 states_only = (data_type == 'position' or data_type == 'position_deltas')
+                print(states_only)
                 # if new model = True a new model is created,
                 # else set previous_checkpoint to latest finished training iteration to continue training
                 new_model = True

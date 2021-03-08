@@ -40,7 +40,7 @@ class MetaRLDynamicsModel(BaseDynamicsModel):
             ob_dim = 14
 
         model = build_and_compile_model(ob_dim, n_layers, size, activation, output_activation, learning_rate)
-        return cls(env, normalization, model, batch_size, states_only)
+        return cls(env, normalization, model, states_only, batch_size)
 
     def fit(self, states, actions, labels, N_EPOCHS=n_epochs, M=M, K=K):
         number_of_trajectories = len(states) / (M + K)
