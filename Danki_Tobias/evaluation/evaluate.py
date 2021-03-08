@@ -14,8 +14,8 @@ data_type_options = ['position', 'position_deltas', 'position_and_velocity', 'po
 train_on_options = ['non_crippled', 'multiple_envs']
 
 data_type = data_type_options[0]
-train_on = train_on_options[1]
-algorithm = 'normal'  # 'meta' # 'online_adaptation'
+train_on = train_on_options[0]
+algorithm = 'meta'  # 'normal' # 'online_adaptation'
 
 meta = algorithm == 'meta'
 with_adaptation = algorithm == 'online_adaptation'
@@ -130,14 +130,19 @@ def average_reward_training_envs(num_paths):
 
 def average_reward_test_envs(num_paths):
     for i, c in enumerate(cripple_options_evaluation):
+        if i < 3:
+            continue
         average_reward(num_paths=num_paths, path_length=500, model_checkpoint=50, crippled=c,
                        name=f"eval_{i}")
 
 
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
+    # visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
     # calculate_errors()
     # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
     # for e in ['exp1', 'exp2']:
     #    experiment = e
+
+    #average_reward_training_envs(20)
+    average_reward_test_envs(20)
 
