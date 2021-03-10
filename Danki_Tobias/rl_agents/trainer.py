@@ -19,7 +19,7 @@ states_only = (data_type == 'position' or data_type == 'position_deltas')
 # if new model = True a new model is created,
 # else set previous_checkpoint to latest finished training iteration to continue training
 new_model = False
-previous_checkpoint = 17
+previous_checkpoint = 0
 
 if data_type == 'position' or data_type == 'position_and_velocity':
     predicts_state = True
