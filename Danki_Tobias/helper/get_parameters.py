@@ -11,12 +11,8 @@ with open(reach_json_path) as jf:
     data = json.load(jf)
 
 
-def load_params(experiment, model_type, model_id):
-    file_path = f'../models/{experiment}/{model_type}/model_{model_id}/parameters.json'
-    """
-    file_path = f'../models/model_{model_id}/parameters.json'
-    if meta:
-        file_path = f'../meta_models/model_{model_id}/parameters.json'"""
+def load_params(data_type, train_on, algorithm):
+    file_path = f'../models/{data_type}/trained_on_{train_on}/{algorithm}/parameters.json'
     with open(file_path) as jf:
         data = json.load(jf)
     return data
@@ -34,8 +30,8 @@ def data_collection_params():
         logging.info("Load data collection parameters error.")
 
 
-def model_params(experiment, model_type, model_id):
-    data = load_params(experiment, model_type, model_id)
+def model_params(data_type, train_on, algorithm):
+    data = load_params(data_type, train_on, algorithm)
     try:
         n_layers = data["model"]["n_layers"]
         layer_size = data["model"]["layer_size"]
@@ -43,7 +39,7 @@ def model_params(experiment, model_type, model_id):
         learning_rate = data["model"]["learning_rate"]
         M = 0
         K = 0
-        if model_type == 'meta':
+        if algorithm == 'meta':
             M = data["model"]["M"]
             K = data["model"]["K"]
         return n_layers, layer_size, batch_size, learning_rate, M, K
@@ -51,8 +47,8 @@ def model_params(experiment, model_type, model_id):
         logging.info("Load controller parameters error.")
 
 
-def training_params(experiment, model_type, model_id):
-    data = load_params(experiment, model_type, model_id)
+def training_params(data_type, train_on, algorithm):
+    data = load_params(data_type, train_on, algorithm)
     try:
         number_of_random_samples = data["training"]["number_of_random_samples"]
         iterations = data["training"]["iterations"]
@@ -62,8 +58,8 @@ def training_params(experiment, model_type, model_id):
         logging.info("Load controller parameters error.")
 
 
-def MPCcontroller_params(experiment, model_type, model_id):
-    data = load_params(experiment, model_type, model_id)
+def MPCcontroller_params(data_type, train_on, algorithm):
+    data = load_params(data_type, train_on, algorithm)
     try:
         num_simulated_paths = data["MPCcontroller"]["num_simulated_paths"]
         horizon = data["MPCcontroller"]["horizon"]

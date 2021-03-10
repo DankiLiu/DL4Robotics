@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from Danki_Tobias.column_names import *
-from Danki_Tobias.helper.get_parameters import *
+from Danki_Tobias.helper.column_names import *
 
 
 def sample(env,
@@ -46,76 +45,6 @@ def sample(env,
                     labels = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
                 controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
                                                          actions=np.array(actions[max(0, j - 32):j]), labels=labels)
-
-            act, cost = controller.get_action(states[j], env.sim.get_state())
-            actions.append(act)
-            obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
-
-            # extract relevant state information
-            next_states.append(obs[0:state_length])
-            total_reward += r
-            total_cost += cost
-
-            if done and finish_when_done:
-                print('Done')
-                break
-
-            if j != horizon - 1:
-                states.append(next_states[j])
-
-        path = {'observations': np.array(states),
-                'actions': np.array(actions),
-                'next_observations': np.array(next_states)
-                }
-        paths.append(path)
-        rewards.append(total_reward)
-        costs.append(total_cost)
-
-    return paths, rewards, costs
-
-
-def sample_old(env,
-               controller,
-               num_paths=10,
-               horizon=500,
-               finish_when_done=False,
-               with_adaptaion=False,
-               exp3=False):
-    """
-        Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
-        and returns rollouts by running on the env.
-        Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
-    """
-    state_length = 14
-    if exp3:
-        state_length = 7
-
-    paths = []
-    rewards = []
-    costs = []
-    print("num_sum_path", num_paths)
-    for i in range(num_paths):
-        print("path :", i)
-        states = list()
-        actions = list()
-        next_states = list()
-        states.append(env.reset()[0:state_length])
-        total_reward = 0
-        total_cost = 0
-        for j in range(horizon):
-            if j % 100 == 0:
-                print(j)
-
-            if with_adaptaion and j > 0:
-                # adapt meta model with data of last 32 steps trajectory
-                if exp3:
-                    controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
-                                                             actions=np.array(actions[max(0, j - 32):j]),
-                                                             next_states=np.array(next_states[max(0, j - 32):j]))
-                else:
-                    deltas = np.array(next_states[max(0, j - 32):j]) - np.array(states[max(0, j - 32):j])
-                    controller.dyn_model.normalize_and_adapt(states=np.array(states[max(0, j - 32):j]),
-                                                             actions=np.array(actions[max(0, j - 32):j]), deltas=deltas)
 
             act, cost = controller.get_action(states[j], env.sim.get_state())
             actions.append(act)
