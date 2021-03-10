@@ -1,0 +1,23 @@
+{
+  "model": {
+    "n_layers": 2,
+    "layer_size": 32,
+    "batch_size": 512,
+    "learning_rate": 1e-3,
+    "M": 32,
+    "K": 16
+  },
+  "on_policy_sampling": {
+    "num_paths": 10,
+    "on_policy_horizon": 500
+  },
+  "MPCcontroller": {
+    "num_simulated_paths": 50,
+    "horizon": 1
+  },
+  "training": {
+    "number_of_random_samples": 4800,
+    "iterations": 50,
+    "training_epochs": 10
+  }
+}

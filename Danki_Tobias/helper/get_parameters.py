@@ -11,10 +11,12 @@ with open(reach_json_path) as jf:
     data = json.load(jf)
 
 
-def load_params(meta, model_id):
+def load_params(experiment, model_type, model_id):
+    file_path = f'../models/{experiment}/{model_type}/model_{model_id}/parameters.json'
+    """
     file_path = f'../models/model_{model_id}/parameters.json'
     if meta:
-        file_path = f'../meta_models/model_{model_id}/parameters.json'
+        file_path = f'../meta_models/model_{model_id}/parameters.json'"""
     with open(file_path) as jf:
         data = json.load(jf)
     return data
@@ -32,8 +34,8 @@ def data_collection_params():
         logging.info("Load data collection parameters error.")
 
 
-def model_params(meta, model_id):
-    data = load_params(meta, model_id)
+def model_params(experiment, model_type, model_id):
+    data = load_params(experiment, model_type, model_id)
     try:
         n_layers = data["model"]["n_layers"]
         layer_size = data["model"]["layer_size"]
@@ -41,7 +43,7 @@ def model_params(meta, model_id):
         learning_rate = data["model"]["learning_rate"]
         M = 0
         K = 0
-        if meta:
+        if model_type == 'meta':
             M = data["model"]["M"]
             K = data["model"]["K"]
         return n_layers, layer_size, batch_size, learning_rate, M, K
@@ -49,8 +51,8 @@ def model_params(meta, model_id):
         logging.info("Load controller parameters error.")
 
 
-def training_params(meta, model_id):
-    data = load_params(meta, model_id)
+def training_params(experiment, model_type, model_id):
+    data = load_params(experiment, model_type, model_id)
     try:
         number_of_random_samples = data["training"]["number_of_random_samples"]
         iterations = data["training"]["iterations"]
@@ -60,8 +62,8 @@ def training_params(meta, model_id):
         logging.info("Load controller parameters error.")
 
 
-def MPCcontroller_params(meta, model_id):
-    data = load_params(meta, model_id)
+def MPCcontroller_params(experiment, model_type, model_id):
+    data = load_params(experiment, model_type, model_id)
     try:
         num_simulated_paths = data["MPCcontroller"]["num_simulated_paths"]
         horizon = data["MPCcontroller"]["horizon"]
@@ -70,8 +72,8 @@ def MPCcontroller_params(meta, model_id):
         logging.info("Load controller parameters error.")
 
 
-def on_policy_sampling_params(meta, model_id):
-    data = load_params(meta, model_id)
+def on_policy_sampling_params(experiment, model_type, model_id):
+    data = load_params(experiment, model_type, model_id)
     try:
         num_paths = data["on_policy_sampling"]["num_paths"]
         on_policy_horizon = data["on_policy_sampling"]["on_policy_horizon"]

@@ -65,6 +65,9 @@ class ReachEnvJointVelCtrl(ReachEnvBase):
         agent = PandaJointVelControlCrippled(render, crippled=crippled)
         super().__init__(agent, render, nsubsteps=nsubsteps)
 
+    def set_crippled(self, crippled):
+        self.agent.set_crippled(crippled)
+
 
 class ReachEnvJointTorqueCtrl(ReachEnvBase):
     def __init__(self, render=True, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]), nsubsteps=1):
