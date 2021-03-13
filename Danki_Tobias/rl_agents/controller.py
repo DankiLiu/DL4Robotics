@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import time
 
 from Danki_Tobias.helper.column_names import *
 
@@ -11,7 +12,8 @@ def sample(env,
            finish_when_done=True,
            with_adaptation=False,
            predicts_state=True,
-           states_only=False):
+           states_only=False,
+           reset_model_weights=False):
     """
         Write a sampler function which takes in an environment, a controller (either random or the MPC controller),
         and returns rollouts by running on the env.
@@ -24,6 +26,7 @@ def sample(env,
     paths = []
     rewards = []
     costs = []
+    durations = []
     print("num_sum_path", num_paths)
     for i in range(num_paths):
         print("path :", i)
@@ -33,9 +36,13 @@ def sample(env,
         states.append(env.reset()[0:state_length])
         total_reward = 0
         total_cost = 0
+
+        old_weights = controller.dyn_model.model.get_weights()
         for j in range(horizon):
             if j % 100 == 0:
                 print(j)
+
+            start_time = time.time()
 
             if with_adaptation and j > 0:
                 # adapt meta model with data of last 32 steps trajectory
@@ -47,6 +54,10 @@ def sample(env,
                                                          actions=np.array(actions[max(0, j - 32):j]), labels=labels)
 
             act, cost = controller.get_action(states[j], env.sim.get_state())
+
+            if reset_model_weights:
+                controller.dyn_model.model.set_weights(old_weights)
+
             actions.append(act)
             obs, r, done, _ = env.step(np.append(actions[j], 0.4))  # append value for gripper
 
@@ -62,6 +73,9 @@ def sample(env,
             if j != horizon - 1:
                 states.append(next_states[j])
 
+            end_time = time.time()
+            durations.append(end_time-start_time)
+
         path = {'observations': np.array(states),
                 'actions': np.array(actions),
                 'next_observations': np.array(next_states)
@@ -69,8 +83,9 @@ def sample(env,
         paths.append(path)
         rewards.append(total_reward)
         costs.append(total_cost)
+        average_duration = np.mean(np.array(durations))
 
-    return paths, rewards, costs
+    return paths, rewards, costs, average_duration
 
 
 class Controller():

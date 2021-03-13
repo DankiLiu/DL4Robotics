@@ -15,12 +15,13 @@ from Danki_Tobias.rl_agents.controller import MPCcontroller, sample
 data_type_options = ['position', 'position_deltas', 'position_and_velocity', 'position_and_velocity_deltas']
 train_on_options = ['non_crippled', 'multiple_envs']
 
-data_type = data_type_options[0]
-train_on = train_on_options[0]
-algorithm = 'meta'  # 'normal' # 'online_adaptation'
+data_type = data_type_options[3]
+train_on = train_on_options[1]
+algorithm = 'online_adaptation_reset'  # normal # meta # online_adaptation
 
 meta = algorithm == 'meta'
-with_adaptation = algorithm == 'online_adaptation'
+with_adaptation = algorithm.startswith('online_adaptation')
+reset = algorithm == 'online_adaptation_reset'
 states_only = (data_type == 'position' or data_type == 'position_deltas')
 
 if data_type == 'position' or data_type == 'position_and_velocity':
@@ -85,7 +86,8 @@ def visualize_paths(num_paths, path_length, model_checkpoint=50, crippled=np.arr
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100,
                                    states_only=states_only)
     sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
-           with_adaptation=(meta or with_adaptation), predicts_state=predicts_state, states_only=states_only)
+           with_adaptation=(meta or with_adaptation), predicts_state=predicts_state, states_only=states_only,
+           reset_model_weights=reset)
 
 
 def average_reward(num_paths, path_length, name, model_checkpoint=50, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
@@ -97,9 +99,9 @@ def average_reward(num_paths, path_length, name, model_checkpoint=50, crippled=n
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100,
                                    states_only=states_only)
 
-    paths, rewards, costs = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
-                                   with_adaptation=(meta or with_adaptation), predicts_state=predicts_state,
-                                   states_only=states_only)
+    paths, rewards, costs, _ = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths,
+                                      finish_when_done=True, with_adaptation=(meta or with_adaptation),
+                                      predicts_state=predicts_state, states_only=states_only, reset_model_weights=reset)
     average_reward = sum(rewards) / num_paths
 
     file_name = f'../data/{data_type}/on_policy/trained_on_{train_on}/{algorithm}/evaluation_{name}.txt'
@@ -119,19 +121,39 @@ def average_reward_training_envs(num_paths):
 
 def average_reward_test_envs(num_paths):
     for i, c in enumerate(cripple_options_evaluation):
-        if i < 3:
-            continue
         average_reward(num_paths=num_paths, path_length=500, model_checkpoint=50, crippled=c,
                        name=f"eval_{i}")
 
 
+def inference_time(num_paths=10, path_length=500, model_checkpoint=50, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
+    controller_env = ReachEnvJointVelCtrl(render=False, )
+    env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=crippled)
+    dyn_model = load_model(env, model_checkpoint=model_checkpoint)
+    # init the mpc controller
+    mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100,
+                                   states_only=states_only)
+
+    _, _, _, average_duration = sample(env, mpc_controller, horizon=path_length, num_paths=num_paths,
+                                       finish_when_done=True, with_adaptation=(meta or with_adaptation),
+                                       predicts_state=predicts_state, states_only=states_only,
+                                       reset_model_weights=reset)
+
+    file_name = f'../data/{data_type}/on_policy/trained_on_{train_on}/{algorithm}/inference_time.txt'
+    with open(file_name, "a+") as file:
+        file.write("Average Inference Time:\n")
+        file.write(f"{average_duration}\n")
+
+    return average_duration
+
+
 if __name__ == "__main__":
-    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
+    # visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
     # calculate_errors()
     # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
     # for e in ['exp1', 'exp2']:
     #    experiment = e
 
-    #average_reward_training_envs(20)
+    # average_reward_training_envs(20)
     # average_reward_test_envs(20)
 
+    inference_time()
