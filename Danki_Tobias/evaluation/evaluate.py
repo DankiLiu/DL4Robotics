@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
 import os
+import matplotlib.pyplot as plt
 
 from Danki_Tobias.data_scripts.data_reader import *
 from Danki_Tobias.helper.environment_definitions import cripple_options_evaluation, cripple_options_training
@@ -16,12 +17,12 @@ data_type_options = ['position', 'position_deltas', 'position_and_velocity', 'po
 train_on_options = ['non_crippled', 'multiple_envs']
 
 data_type = data_type_options[3]
-train_on = train_on_options[1]
-algorithm = 'online_adaptation_reset'  # normal # meta # online_adaptation
+train_on = train_on_options[0]
+algorithm = 'meta'  # normal # meta # online_adaptation
 
-meta = algorithm == 'meta'
+meta = algorithm.startswith('meta')
 with_adaptation = algorithm.startswith('online_adaptation')
-reset = algorithm == 'online_adaptation_reset'
+reset = algorithm.endswith('reset')
 states_only = (data_type == 'position' or data_type == 'position_deltas')
 
 if data_type == 'position' or data_type == 'position_and_velocity':
@@ -45,9 +46,9 @@ data_reader = DataReader(data_type=data_type, train_on=train_on)
 def load_model(env, model_checkpoint=50):
     normalization = data_reader.load_normalization_variables()
 
-    model_path = f'../models/{data_type}/trained_on_{train_on}/{algorithm}/iteration_{model_checkpoint}.hdf5'
-    if with_adaptation:
-        model_path = f'../models/{data_type}/trained_on_{train_on}/normal/iteration_{model_checkpoint}.hdf5'
+    model_path = f'../models/{data_type}/trained_on_{train_on}/normal/iteration_{model_checkpoint}.hdf5'
+    if meta:
+        model_path = f'../models/{data_type}/trained_on_{train_on}/meta/iteration_{model_checkpoint}.hdf5'
 
     model = keras.models.load_model(filepath=model_path)
     dyn_model = dynamicsModel(env=env, normalization=normalization, model=model, states_only=states_only)
@@ -57,24 +58,28 @@ def load_model(env, model_checkpoint=50):
 def calculate_errors(validation=True):
     env = ReachEnvJointVelCtrl(render=False, nsubsteps=10, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1]))
     states_rand, actions_rand, labels_rand = data_reader.load_random_samples(validation=validation)
+    labels_rand.columns = state_columns
 
+    mean_absolute_error = []
+    mean_squared_error = []
     for i in range(0, 50):
-        dyn_model = load_model(env, model_checkpoint=i)
+        dyn_model = load_model(env, model_checkpoint=i+1)
         predictions = dyn_model.predict(states_rand.copy(), actions_rand.copy())
 
         # calculate difference of predictions and actual values of the next state
         difference = predictions - labels_rand
         difference = difference.abs()
 
-        mean_absolute_error = difference.mean().mean()
+        mae = difference.mean().mean()
 
         # calculate mean squared error
         difference_squared = difference.pow(2)
-        mean_squared_error = difference_squared.mean().mean()
+        mse = difference_squared.mean().mean()
 
-        print(f'Metrics with model after {i} training Epochs')
-        print(f'Mean absolute Error: {mean_absolute_error}')
-        print(f'Mean squared Error: {mean_squared_error}')
+        mean_absolute_error.append(mae)
+        mean_squared_error.append(mse)
+
+    return mean_absolute_error, mean_squared_error
 
 
 def visualize_paths(num_paths, path_length, model_checkpoint=50, crippled=np.array([1, 1, 1, 1, 1, 1, 1, 1])):
@@ -85,7 +90,7 @@ def visualize_paths(num_paths, path_length, model_checkpoint=50, crippled=np.arr
     # init the mpc controller
     mpc_controller = MPCcontroller(env=controller_env, dyn_model=dyn_model, horizon=1, num_simulated_paths=100,
                                    states_only=states_only)
-    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=True,
+    sample(env, mpc_controller, horizon=path_length, num_paths=num_paths, finish_when_done=False,
            with_adaptation=(meta or with_adaptation), predicts_state=predicts_state, states_only=states_only,
            reset_model_weights=reset)
 
@@ -147,13 +152,15 @@ def inference_time(num_paths=10, path_length=500, model_checkpoint=50, crippled=
 
 
 if __name__ == "__main__":
-    # visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
+    visualize_paths(num_paths=3, path_length=1000, model_checkpoint=50)
     # calculate_errors()
     # average_reward(num_paths=100, path_length=1000, model_checkpoint=50, meta=meta)
     # for e in ['exp1', 'exp2']:
     #    experiment = e
 
-    # average_reward_training_envs(20)
-    # average_reward_test_envs(20)
+    #average_reward_training_envs(20)
+    #average_reward_test_envs(20)
 
-    inference_time()
+    # inference_time()
+
+

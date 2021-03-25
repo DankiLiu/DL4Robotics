@@ -124,9 +124,10 @@ def train():
             print(cripple_options[random_env_index])
 
         # Generate new trajectories with the MPC controllers
-        paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                       num_paths=new_paths_per_iteration, finish_when_done=True, with_adaptation=meta,
-                                       predicts_state=predicts_state, states_only=states_only)
+        paths, rewards, costs, _ = sample(env, mpc_controller, horizon=length_of_new_paths,
+                                          num_paths=new_paths_per_iteration, finish_when_done=True,
+                                          with_adaptation=meta,
+                                          predicts_state=predicts_state, states_only=states_only)
         data_reader.save_rewards(rewards, algorithm, new_paths_per_iteration)
         states = np.concatenate([path["observations"] for path in paths])
         actions = np.concatenate([path["actions"] for path in paths])
@@ -138,9 +139,10 @@ def train():
 
         if train_on == 'multiple_envs' and not meta:
             # Generate trajectories with adaptation
-            paths, rewards, costs = sample(env, mpc_controller, horizon=length_of_new_paths,
-                                           num_paths=new_paths_per_iteration, finish_when_done=True,
-                                           with_adaptation=True, predicts_state=predicts_state, states_only=states_only)
+            paths, rewards, costs, _ = sample(env, mpc_controller, horizon=length_of_new_paths,
+                                              num_paths=new_paths_per_iteration, finish_when_done=True,
+                                              with_adaptation=True, predicts_state=predicts_state,
+                                              states_only=states_only)
             data_reader.save_rewards(rewards, 'online_adaptation', new_paths_per_iteration)
             states = np.concatenate([path["observations"] for path in paths])
             actions = np.concatenate([path["actions"] for path in paths])
